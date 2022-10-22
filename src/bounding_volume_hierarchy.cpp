@@ -72,20 +72,44 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
     if (!features.enableAccelStructure) {
         bool hit = false;
         // Intersect with all triangles of all meshes.
+        Vertex last0, last1, last2;
         for (const auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
                 const auto v0 = mesh.vertices[tri[0]];
                 const auto v1 = mesh.vertices[tri[1]];
                 const auto v2 = mesh.vertices[tri[2]];
-                if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+                float oldRayT = ray.t;
+                if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo) && ray.t > 1e-6 && ray.t < oldRayT) {
                     hitInfo.material = mesh.material;
+                    hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, ray.origin + ray.t * ray.direction);
+                    if (features.enableNormalInterp) {
+                        hitInfo.normal = interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord);
+                        last0 = v0;
+                        last1 = v1;
+                        last2 = v2;
+                    }
+                    else
+                        hitInfo.normal = v0.normal;
+                    hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
                     hit = true;
+                }
+                else {
+                    ray.t = oldRayT;
                 }
             }
         }
         // Intersect with spheres.
         for (const auto& sphere : m_pScene->spheres)
             hit |= intersectRayWithShape(sphere, ray, hitInfo);
+
+
+        // Debug Normal Interpolation
+        if (features.enableNormalInterp) {
+           drawRay(Ray{last0.position, last0.normal, 1}, glm::vec3{1, 0.2, 0.4});
+            drawRay(Ray{last1.position, last1.normal, 1}, glm::vec3{0.5, 1, 0});
+            drawRay(Ray{last2.position, last2.normal, 1}, glm::vec3{0, 0.9, 1});
+            drawRay(Ray{ray.origin + ray.t * ray.direction, hitInfo.normal, 1}, glm::vec3{0, 1, 0}); 
+        }
         return hit;
     } else {
         // TODO: implement here the bounding volume hierarchy traversal.

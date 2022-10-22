@@ -30,8 +30,36 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 // returns 1.0 if sample is visible, 0.0 otherwise
 float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& debugColor, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
-    // TODO: implement this function.
-    return 1.0;
+    glm::vec3 hit = ray.origin + ray.t * ray.direction;
+    float eps = 1e-6;
+    glm::vec3 normal = hitInfo.normal;
+    if (glm::dot(glm::normalize(hitInfo.normal), glm::normalize(ray.origin - hit)) < -eps) {
+        normal = -hitInfo.normal;
+    }
+    
+    float length = glm::length(hit - samplePos);
+    glm::vec3 copyPos = samplePos;
+    Ray sray { copyPos, hit - samplePos };
+    HitInfo newhit;
+    bvh.intersect(sray, newhit, features);
+    
+    glm::vec3 secondHit = sray.origin + sray.t * sray.direction;
+    if (glm::dot(glm::normalize(samplePos - hit), glm::normalize(normal)) < -eps) {
+
+        if (features.enableHardShadow)
+            drawRay(sray, glm::vec3{1, 0, 0});
+        return 0.0f;
+    }
+    if (glm::distance(hit, secondHit) > 1e-3) {
+        if (features.enableHardShadow)
+            drawRay(sray, glm::vec3{1, 0, 0});
+        return 0.0f;
+    }
+
+    if (features.enableHardShadow)
+        drawRay(sray, debugColor);
+    
+    return 1.0f;
 }
 
 // given an intersection, computes the contribution from all light sources at the intersection point
@@ -70,11 +98,25 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
 glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
     if (features.enableShading) {
-        // If shading is enabled, compute the contribution from all lights.
+        glm::vec3 med = {0, 0, 0};
 
-        // TODO: replace this by your own implementation of shading
-        return hitInfo.material.kd;
+        for (const auto& light : scene.lights) {
+            if (std::holds_alternative<PointLight>(light)) {
+                const PointLight pointLight = std::get<PointLight>(light);
+                if (features.enableHardShadow)
+                    med += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo) * testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+                else
+                    med += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
 
+            } else if (std::holds_alternative<SegmentLight>(light)) {
+                const SegmentLight segmentLight = std::get<SegmentLight>(light);
+                // Perform your calculations for a segment light.
+            } else if (std::holds_alternative<ParallelogramLight>(light)) {
+                const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+                // Perform your calculations for a parallelogram light.
+            }
+        }
+        return med;
     } else {
         // If shading is disabled, return the albedo of the material.
         return hitInfo.material.kd;
