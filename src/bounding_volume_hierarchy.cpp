@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
+BoundingVolumeHierarchy* lastBVH;
+
 void calculateCentroid(MeshTrianglePair& meshTrianglePair) { 
     std::vector<glm::uvec3>& triangles = meshTrianglePair.mesh->triangles;
     std::vector<Vertex>& vertices = meshTrianglePair.mesh->vertices;
@@ -106,15 +108,17 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const MeshTriang
     , axisAlignedBox(axisAlignedBox)
     , m_numLeaves(1)
     , m_numLevels(1)
+    , m_isLeaf(true)
     , leftChild(nullptr)
     , rightChild(nullptr)
 { 
 }
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const BoundingVolumeHierarchy* hLeft, const BoundingVolumeHierarchy* hRight, const AxisAlignedBox axisAlignedBox)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, BoundingVolumeHierarchy* hLeft, BoundingVolumeHierarchy* hRight, const AxisAlignedBox axisAlignedBox)
     : m_pScene(pScene)
     , meshTrianglePair(meshTrianglePair)
     , axisAlignedBox(axisAlignedBox)
+    , m_isLeaf(false)
     , leftChild(hLeft)
     , rightChild(hRight)
 {
@@ -148,8 +152,12 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         }
     }
 
+    if (lastBVH)
+        delete lastBVH;
+
     // change object pointed at by this to our properly created BVH
     *this = *bvhSplitHelper(pScene, indices, meshTrianglePairs, 0);
+    lastBVH = this;
 }
 
 // Destructor for BoundingVolumeHierarchy
@@ -175,19 +183,35 @@ int BoundingVolumeHierarchy::numLeaves() const
     return this->m_numLeaves;
 }
 
+// Return if the node is a leaf.
+bool BoundingVolumeHierarchy::isLeaf() const
+{
+    return this->m_isLeaf;
+}
+
+void BoundingVolumeHierarchy::debugDrawLevelHelper(int totalDepth, int level) {
+    // Draw the AABB as a transparent green box.
+    // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
+    // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
+
+    // Draw the AABB as a (white) wireframe box.
+    if (totalDepth - this->numLevels() >= level) {
+        drawAABB(axisAlignedBox, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+    } else {
+        if (!this->isLeaf()) {
+            // Adjust total depth by how much each subtree differs in height from the one with greater height.
+            leftChild->debugDrawLevelHelper(totalDepth - (this->numLevels() - 1 - leftChild->numLevels()), level);
+            rightChild->debugDrawLevelHelper(totalDepth - (this->numLevels() - 1 - rightChild->numLevels()), level);
+        }
+    }
+    // drawAABB(aabb, DrawMode::Wireframe);
+}
 // Use this function to visualize your BVH. This is useful for debugging. Use the functions in
 // draw.h to draw the various shapes. We have extended the AABB draw functions to support wireframe
 // mode, arbitrary colors and transparency.
 void BoundingVolumeHierarchy::debugDrawLevel(int level)
 {
-    // Draw the AABB as a transparent green box.
-    //AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
-    //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
-
-    // Draw the AABB as a (white) wireframe box.
-    AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
-    //drawAABB(aabb, DrawMode::Wireframe);
-    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+    debugDrawLevelHelper(this->numLevels(), level);
 }
 
 
@@ -202,9 +226,16 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
-    AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
+    if (this->isLeaf()) {
+        drawAABB(axisAlignedBox, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+    } else {
+        if (leftChild->numLeaves() > leafIdx)
+            leftChild->debugDrawLeaf(leafIdx);
+        else
+            rightChild->debugDrawLeaf(leafIdx - leftChild->numLeaves());
+    }
     //drawAABB(aabb, DrawMode::Wireframe);
-    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+    
 
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
 }

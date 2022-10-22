@@ -17,7 +17,7 @@ public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
     BoundingVolumeHierarchy(Scene* pScene);
     BoundingVolumeHierarchy(Scene* pScene, const MeshTrianglePair& meshTrianglePair, const AxisAlignedBox axisAlignedBox);
-    BoundingVolumeHierarchy(Scene* pScene, const BoundingVolumeHierarchy* hLeft, const BoundingVolumeHierarchy* hRight, const AxisAlignedBox axisAlignedBox);
+    BoundingVolumeHierarchy(Scene* pScene, BoundingVolumeHierarchy* hLeft, BoundingVolumeHierarchy* hRight, const AxisAlignedBox axisAlignedBox);
 
     // Destructor for BoundingVolumeHierarchy
     ~BoundingVolumeHierarchy();
@@ -28,8 +28,12 @@ public:
     // Return how many leaf nodes there are in the tree that you have constructed.
     [[nodiscard]] int numLeaves() const;
 
+    // Return true iff the node is a leaf node.
+    [[nodiscard]] bool isLeaf() const;
+
     // Visual Debug 1: Draw the bounding boxes of the nodes at the selected level.
     void debugDrawLevel(int level);
+    void debugDrawLevelHelper(int totalDepth, int level);
 
     // Visual Debug 2: Draw the triangles of the i-th leaf
     void debugDrawLeaf(int leafIdx);
@@ -45,9 +49,10 @@ public:
 private:
     int m_numLevels;
     int m_numLeaves;
+    bool m_isLeaf;
     Scene* m_pScene;
     std::optional<MeshTrianglePair> meshTrianglePair;
     AxisAlignedBox axisAlignedBox;
-    const BoundingVolumeHierarchy* leftChild;
-    const BoundingVolumeHierarchy* rightChild;
+    BoundingVolumeHierarchy* leftChild;
+    BoundingVolumeHierarchy* rightChild;
 };
