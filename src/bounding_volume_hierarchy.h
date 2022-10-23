@@ -21,10 +21,7 @@ public:
     BoundingVolumeHierarchy(Scene* pScene, const std::optional<MeshTrianglePair>& meshTrianglePair, const AxisAlignedBox axisAlignedBox);
 
     // Constructor. Used to create the inner nodes of the BoundingVolumeHierarchy tree.
-    BoundingVolumeHierarchy(Scene* pScene, BoundingVolumeHierarchy* hLeft, BoundingVolumeHierarchy* hRight, const AxisAlignedBox axisAlignedBox);
-
-    // Destructor for BoundingVolumeHierarchy
-    ~BoundingVolumeHierarchy();
+    BoundingVolumeHierarchy(Scene* pScene, BoundingVolumeHierarchy& hLeft, BoundingVolumeHierarchy& hRight, const AxisAlignedBox axisAlignedBox);
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;
@@ -50,7 +47,7 @@ public:
     // is on the correct side of the origin (the new t >= 0).
     bool intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const;
 
-    static BoundingVolumeHierarchy* bvhSplitHelper(Scene* pScene, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction);
+    static BoundingVolumeHierarchy bvhSplitHelper(Scene* pScene, std::vector<BoundingVolumeHierarchy>& allNodes, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction);
 
 
 private:
@@ -61,6 +58,6 @@ private:
     Scene* m_pScene;
     std::optional<MeshTrianglePair> meshTrianglePair;
     AxisAlignedBox axisAlignedBox;
-    BoundingVolumeHierarchy* leftChild;
-    BoundingVolumeHierarchy* rightChild;
+    std::vector<BoundingVolumeHierarchy> children;
+    std::vector<BoundingVolumeHierarchy> allNodes;
 };

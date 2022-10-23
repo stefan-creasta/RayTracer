@@ -6,8 +6,6 @@
 #include "interpolate.h"
 #include <glm/glm.hpp>
 
-BoundingVolumeHierarchy* lastBVH;
-
 void calculateCentroid(MeshTrianglePair& meshTrianglePair) { 
     std::vector<glm::uvec3>& triangles = meshTrianglePair.mesh->triangles;
     std::vector<Vertex>& vertices = meshTrianglePair.mesh->vertices;
@@ -20,7 +18,7 @@ void calculateCentroid(MeshTrianglePair& meshTrianglePair) {
     meshTrianglePair.centroid = (1.f / 3.f) * (p0 + p1 + p2);
 }
 
-AxisAlignedBox getTriangleAAB(const glm::vec3 p0, const glm::vec3 p1, const glm::vec3 p2) { 
+AxisAlignedBox getTriangleAAB(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2) { 
     return AxisAlignedBox {
         glm::vec3 {
             std::min({ p0.x, p1.x, p2.x }),
@@ -65,31 +63,34 @@ size_t getMedian(const std::span<size_t>& indices, const std::span<MeshTriangleP
     return indices.size() / 2;
 }
 
-BoundingVolumeHierarchy* BoundingVolumeHierarchy::bvhSplitHelper(Scene* pScene, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction)
+BoundingVolumeHierarchy BoundingVolumeHierarchy::bvhSplitHelper(Scene* pScene, std::vector<BoundingVolumeHierarchy>& allNodes, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction)
 {
     if (indices.size() == 0) {
-        BoundingVolumeHierarchy* current = new BoundingVolumeHierarchy(pScene, std::optional<MeshTrianglePair>(), AxisAlignedBox {});
-        current->m_isEmpty = true;
+        BoundingVolumeHierarchy current = BoundingVolumeHierarchy(pScene, std::optional<MeshTrianglePair>(), AxisAlignedBox {});
+        current.m_isEmpty = true;
         return current;
     }
     if (indices.size() == 1) {
         MeshTrianglePair pair = meshTrianglePairs[indices[0]];
         const auto aab = getTriangleAAB(pair);
-        BoundingVolumeHierarchy* current = new BoundingVolumeHierarchy(pScene, pair, aab);
-        current->m_isEmpty = false;
+        BoundingVolumeHierarchy current = BoundingVolumeHierarchy(pScene, pair, aab);
+        current.m_isEmpty = false;
         return current;
     }
     size_t median = getMedian(indices, meshTrianglePairs, direction);
     const std::span<size_t> leftIndices = std::span<size_t>(indices.begin(), indices.begin() + median);
     const std::span<size_t> rightIndices = std::span<size_t>(indices.begin() + median, indices.end());
 
-    BoundingVolumeHierarchy* hLeft = bvhSplitHelper(pScene, leftIndices, meshTrianglePairs, (direction + 1) % 3);
-    BoundingVolumeHierarchy* hRight = bvhSplitHelper(pScene, rightIndices, meshTrianglePairs, (direction + 1) % 3);
+    BoundingVolumeHierarchy hLeft = bvhSplitHelper(pScene, allNodes, leftIndices, meshTrianglePairs, (direction + 1) % 3);
+    BoundingVolumeHierarchy hRight = bvhSplitHelper(pScene, allNodes, rightIndices, meshTrianglePairs, (direction + 1) % 3);
 
-    AxisAlignedBox currentBox = mergeAABs(hLeft->axisAlignedBox, hRight->axisAlignedBox);
+    AxisAlignedBox currentBox = mergeAABs(hLeft.axisAlignedBox, hRight.axisAlignedBox);
 
-    BoundingVolumeHierarchy* current = new BoundingVolumeHierarchy(pScene, hLeft, hRight, currentBox);
-    current->m_isEmpty = false;
+    allNodes.push_back(hLeft);
+    allNodes.push_back(hRight);
+
+    BoundingVolumeHierarchy current = BoundingVolumeHierarchy(pScene, hLeft, hRight, currentBox);
+    current.m_isEmpty = false;
     
     return current;
 }
@@ -103,35 +104,38 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const std::optio
     , m_numLevels(1)
     , m_isLeaf(true)
     , m_isEmpty(false)
-    , leftChild(nullptr)
-    , rightChild(nullptr)
+    , children({})
 { 
 }
 
 // Constructor. Used to create the inner nodes of the BoundingVolumeHierarchy tree.
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, BoundingVolumeHierarchy* hLeft, BoundingVolumeHierarchy* hRight, const AxisAlignedBox axisAlignedBox)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, BoundingVolumeHierarchy& hLeft, BoundingVolumeHierarchy& hRight, const AxisAlignedBox axisAlignedBox)
     : m_pScene(pScene)
     , meshTrianglePair(meshTrianglePair)
     , axisAlignedBox(axisAlignedBox)
     , m_isLeaf(false)
     , m_isEmpty(false)
-    , leftChild(hLeft)
-    , rightChild(hRight)
+    , children({})
 {
-    this->m_numLeaves = hLeft->m_numLeaves + hRight->m_numLeaves;
-    this->m_numLevels = glm::max(hLeft->m_numLevels, hRight->m_numLevels) + 1;
+    this->m_numLeaves = hLeft.m_numLeaves + hRight.m_numLeaves;
+    this->m_numLevels = glm::max(hLeft.m_numLevels, hRight.m_numLevels) + 1;
+    children.push_back(hLeft);
+    children.push_back(hRight);
 }
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
     size_t n = 0;
-    for (Mesh& mesh : pScene->meshes) { 
+    for (Mesh& mesh : pScene->meshes) {
         n += mesh.triangles.size();
     }
 
+    allNodes = std::vector<BoundingVolumeHierarchy>();
+
     if (n == 0) {
         new (this) BoundingVolumeHierarchy(pScene, std::optional<MeshTrianglePair>(), AxisAlignedBox {});
+        allNodes.push_back(*this);
         this->m_isEmpty = true;
         return;
     }
@@ -140,6 +144,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     std::vector<MeshTrianglePair> meshTrianglePairs = std::vector<MeshTrianglePair>();
     indices.reserve(n);
     meshTrianglePairs.reserve(n);
+    allNodes.reserve(n);
 
     // i is incremented in the inner loop!
     size_t i = 0;
@@ -154,21 +159,16 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         }
     }
 
-    if (lastBVH)
-        delete lastBVH;
+    BoundingVolumeHierarchy bvh = bvhSplitHelper(pScene, allNodes, indices, meshTrianglePairs, 0);
 
-    // change object pointed at by this to our properly created BVH
-    *this = *bvhSplitHelper(pScene, indices, meshTrianglePairs, 0);
-    lastBVH = this;
-}
-
-// Destructor for BoundingVolumeHierarchy
-BoundingVolumeHierarchy::~BoundingVolumeHierarchy()
-{
-    if (this->leftChild)
-        delete this->leftChild;
-    if (this->rightChild)
-        delete this->rightChild;
+    this->m_numLevels = bvh.m_numLevels;
+    m_numLeaves = bvh.m_numLeaves;
+    m_isLeaf = bvh.m_isLeaf;
+    m_isEmpty = bvh.m_isEmpty;
+    m_pScene = pScene;
+    meshTrianglePair = bvh.meshTrianglePair;
+    axisAlignedBox = bvh.axisAlignedBox;
+    children = bvh.children;
 }
 
 // Return the depth of the tree that you constructed. This is used to tell the
@@ -208,8 +208,8 @@ void BoundingVolumeHierarchy::debugDrawLevelHelper(int totalDepth, int level) {
     } else {
         if (!this->isLeaf()) {
             // Adjust total depth by how much each subtree differs in height from the one with greater height.
-            leftChild->debugDrawLevelHelper(totalDepth - (this->numLevels() - 1 - leftChild->numLevels()), level);
-            rightChild->debugDrawLevelHelper(totalDepth - (this->numLevels() - 1 - rightChild->numLevels()), level);
+            children[0].debugDrawLevelHelper(totalDepth - (this->numLevels() - 1 - children[0].numLevels()), level);
+            children[1].debugDrawLevelHelper(totalDepth - (this->numLevels() - 1 - children[1].numLevels()), level);
         }
     }
     // drawAABB(aabb, DrawMode::Wireframe);
@@ -234,13 +234,13 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
-    if (this->isLeaf()) {
+    if (isLeaf()) {
         drawAABB(axisAlignedBox, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
     } else {
-        if (leftChild->numLeaves() > leafIdx)
-            leftChild->debugDrawLeaf(leafIdx);
+        if (children[0].numLeaves() > leafIdx)
+            children[0].debugDrawLeaf(leafIdx);
         else
-            rightChild->debugDrawLeaf(leafIdx - leftChild->numLeaves());
+            children[1].debugDrawLeaf(leafIdx - children[0].numLeaves());
     }
     //drawAABB(aabb, DrawMode::Wireframe);
     
