@@ -44,19 +44,7 @@ AxisAlignedBox getTriangleAAB(const MeshTrianglePair& meshTrianglePair) {
     glm::vec3& p0 = vertices[x].position;
     glm::vec3& p1 = vertices[y].position;
     glm::vec3& p2 = vertices[z].position;
-    return AxisAlignedBox
-    {
-        glm::vec3 { 
-            std::min({ p0.x, p1.x, p2.x }),
-            std::min({ p0.y, p1.y, p2.y }),
-            std::min({ p0.z, p1.z, p2.z }),
-        },
-        glm::vec3 {
-            std::max({ p0.x, p1.x, p2.x }),
-            std::max({ p0.y, p1.y, p2.y }),
-            std::max({ p0.z, p1.z, p2.z }),
-        }
-    };
+    return getTriangleAAB(p0, p1, p2);
 }
 
 AxisAlignedBox mergeAABs(const AxisAlignedBox& A, const AxisAlignedBox& B) { 
