@@ -5,7 +5,6 @@
 #include "texture.h"
 #include "interpolate.h"
 #include <glm/glm.hpp>
-#include <iostream>
 
 BoundingVolumeHierarchy* lastBVH;
 
@@ -148,8 +147,6 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         this->m_isEmpty = true;
         return;
     }
-
-    std::cout << "Number of triangles: " << n << std::endl;
 
     std::vector<size_t> indices = std::vector<size_t>();
     std::vector<MeshTrianglePair> meshTrianglePairs = std::vector<MeshTrianglePair>();
