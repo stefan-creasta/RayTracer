@@ -79,13 +79,17 @@ size_t getMedian(const std::span<size_t>& indices, const std::span<MeshTriangleP
 }
 
 BoundingVolumeHierarchy* BoundingVolumeHierarchy::bvhSplitHelper(Scene* pScene, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction)
-{ 
+{
+    if (indices.size() == 0) {
+        BoundingVolumeHierarchy* current = new BoundingVolumeHierarchy(pScene, std::optional<MeshTrianglePair>(), AxisAlignedBox {});
+        current->m_isEmpty = true;
+        return current;
+    }
     if (indices.size() == 1) {
         MeshTrianglePair pair = meshTrianglePairs[indices[0]];
         const auto aab = getTriangleAAB(pair);
         BoundingVolumeHierarchy* current = new BoundingVolumeHierarchy(pScene, pair, aab);
-        current->m_numLeaves = 1;
-        current->m_numLevels = 0;
+        current->m_isEmpty = false;
         return current;
     }
     size_t median = getMedian(indices, meshTrianglePairs, direction);
@@ -98,27 +102,32 @@ BoundingVolumeHierarchy* BoundingVolumeHierarchy::bvhSplitHelper(Scene* pScene, 
     AxisAlignedBox currentBox = mergeAABs(hLeft->axisAlignedBox, hRight->axisAlignedBox);
 
     BoundingVolumeHierarchy* current = new BoundingVolumeHierarchy(pScene, hLeft, hRight, currentBox);
+    current->m_isEmpty = false;
     
     return current;
 }
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const MeshTrianglePair& meshTrianglePair, const AxisAlignedBox axisAlignedBox)
+// Constructor. Used to create a leaf node or an empty BoundingVolumeHierarchy.
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const std::optional<MeshTrianglePair>& meshTrianglePair, const AxisAlignedBox axisAlignedBox)
     : m_pScene(pScene)
     , meshTrianglePair(meshTrianglePair)
     , axisAlignedBox(axisAlignedBox)
     , m_numLeaves(1)
     , m_numLevels(1)
     , m_isLeaf(true)
+    , m_isEmpty(false)
     , leftChild(nullptr)
     , rightChild(nullptr)
 { 
 }
 
+// Constructor. Used to create the inner nodes of the BoundingVolumeHierarchy tree.
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, BoundingVolumeHierarchy* hLeft, BoundingVolumeHierarchy* hRight, const AxisAlignedBox axisAlignedBox)
     : m_pScene(pScene)
     , meshTrianglePair(meshTrianglePair)
     , axisAlignedBox(axisAlignedBox)
     , m_isLeaf(false)
+    , m_isEmpty(false)
     , leftChild(hLeft)
     , rightChild(hRight)
 {
@@ -133,6 +142,14 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     for (Mesh& mesh : pScene->meshes) { 
         n += mesh.triangles.size();
     }
+
+    if (n == 0) {
+        new (this) BoundingVolumeHierarchy(pScene, std::optional<MeshTrianglePair>(), AxisAlignedBox {});
+        this->m_isEmpty = true;
+        return;
+    }
+
+    std::cout << "Number of triangles: " << n << std::endl;
 
     std::vector<size_t> indices = std::vector<size_t>();
     std::vector<MeshTrianglePair> meshTrianglePairs = std::vector<MeshTrianglePair>();
@@ -187,6 +204,12 @@ int BoundingVolumeHierarchy::numLeaves() const
 bool BoundingVolumeHierarchy::isLeaf() const
 {
     return this->m_isLeaf;
+}
+
+// Return if the tree doesn't contain any bounding volumes to traverse.
+bool BoundingVolumeHierarchy::isEmpty() const
+{
+    return this->m_isEmpty;
 }
 
 void BoundingVolumeHierarchy::debugDrawLevelHelper(int totalDepth, int level) {

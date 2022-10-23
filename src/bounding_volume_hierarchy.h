@@ -16,7 +16,11 @@ class BoundingVolumeHierarchy {
 public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
     BoundingVolumeHierarchy(Scene* pScene);
-    BoundingVolumeHierarchy(Scene* pScene, const MeshTrianglePair& meshTrianglePair, const AxisAlignedBox axisAlignedBox);
+
+    // Constructor. Used to create a leaf node or an empty BoundingVolumeHierarchy.
+    BoundingVolumeHierarchy(Scene* pScene, const std::optional<MeshTrianglePair>& meshTrianglePair, const AxisAlignedBox axisAlignedBox);
+
+    // Constructor. Used to create the inner nodes of the BoundingVolumeHierarchy tree.
     BoundingVolumeHierarchy(Scene* pScene, BoundingVolumeHierarchy* hLeft, BoundingVolumeHierarchy* hRight, const AxisAlignedBox axisAlignedBox);
 
     // Destructor for BoundingVolumeHierarchy
@@ -30,6 +34,9 @@ public:
 
     // Return true iff the node is a leaf node.
     [[nodiscard]] bool isLeaf() const;
+
+    // Return if the tree doesn't contain any bounding volumes to traverse.
+    [[nodiscard]] bool isEmpty() const;
 
     // Visual Debug 1: Draw the bounding boxes of the nodes at the selected level.
     void debugDrawLevel(int level);
@@ -50,6 +57,7 @@ private:
     int m_numLevels;
     int m_numLeaves;
     bool m_isLeaf;
+    bool m_isEmpty;
     Scene* m_pScene;
     std::optional<MeshTrianglePair> meshTrianglePair;
     AxisAlignedBox axisAlignedBox;
