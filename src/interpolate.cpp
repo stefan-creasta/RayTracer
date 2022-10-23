@@ -21,3 +21,10 @@ glm::vec2 interpolateTexCoord (const glm::vec2& t0, const glm::vec2& t1, const g
 {
     return barycentricCoord[0] * t0 + barycentricCoord[1] * t1 + barycentricCoord[2] * t2;
 }
+
+void interpolateNormalDebug(const Vertex v0, const Vertex v1, const Vertex v2, const Ray ray, const HitInfo hitInfo) {
+    drawRay(Ray{v0.position, v0.normal, 1}, glm::vec3{1, 0.2, 0.4});
+    drawRay(Ray{v1.position, v1.normal, 1}, glm::vec3{0.5, 1, 0});
+    drawRay(Ray{v2.position, v2.normal, 1}, glm::vec3{0, 0.9, 1});
+    drawRay(Ray{ray.origin + ray.t * ray.direction, hitInfo.normal, 1}, glm::vec3{0, 1, 0}); 
+}

@@ -61,6 +61,23 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
 }
 
+void BoundingVolumeHierarchy::triangleIntersectUpdate(const glm::uvec3& tri, HitInfo& hitInfo, const Ray& ray, const Mesh& mesh, const Features& features) const{
+
+    const auto v0 = mesh.vertices[tri[0]];
+    const auto v1 = mesh.vertices[tri[1]];
+    const auto v2 = mesh.vertices[tri[2]];
+    const auto point = ray.origin + ray.t * ray.direction;
+
+    hitInfo.material = mesh.material;
+    hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, point);
+    if (features.enableNormalInterp) {
+        hitInfo.normal = interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord);
+    }
+    else {
+        hitInfo.normal = v0.normal;
+    }
+    hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+}
 
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
@@ -80,17 +97,12 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 const auto v2 = mesh.vertices[tri[2]];
                 float oldRayT = ray.t;
                 if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo) && ray.t > 1e-6 && ray.t < oldRayT) {
-                    hitInfo.material = mesh.material;
-                    hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, ray.origin + ray.t * ray.direction);
                     if (features.enableNormalInterp) {
-                        hitInfo.normal = interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord);
                         last0 = v0;
                         last1 = v1;
                         last2 = v2;
                     }
-                    else
-                        hitInfo.normal = v0.normal;
-                    hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+                    triangleIntersectUpdate(tri, hitInfo, ray, mesh, features);
                     hit = true;
                 }
                 else {
@@ -105,10 +117,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
 
         // Debug Normal Interpolation
         if (features.enableNormalInterp) {
-           drawRay(Ray{last0.position, last0.normal, 1}, glm::vec3{1, 0.2, 0.4});
-            drawRay(Ray{last1.position, last1.normal, 1}, glm::vec3{0.5, 1, 0});
-            drawRay(Ray{last2.position, last2.normal, 1}, glm::vec3{0, 0.9, 1});
-            drawRay(Ray{ray.origin + ray.t * ray.direction, hitInfo.normal, 1}, glm::vec3{0, 1, 0}); 
+            interpolateNormalDebug(last0, last1, last2, ray, hitInfo);
         }
         return hit;
     } else {
