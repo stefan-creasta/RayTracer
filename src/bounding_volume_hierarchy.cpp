@@ -6,6 +6,7 @@
 #include "interpolate.h"
 #include <glm/glm.hpp>
 
+// Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
 void calculateCentroid(MeshTrianglePair& meshTrianglePair)
 {
     std::vector<glm::uvec3>& triangles = meshTrianglePair.mesh->triangles;
@@ -19,6 +20,7 @@ void calculateCentroid(MeshTrianglePair& meshTrianglePair)
     meshTrianglePair.centroid = (1.f / 3.f) * (p0 + p1 + p2);
 }
 
+// Calculate the axis-aligned bounding box of a triangle defined by its vertices.
 AxisAlignedBox getTriangleAAB(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2)
 {
     return AxisAlignedBox {
@@ -35,6 +37,7 @@ AxisAlignedBox getTriangleAAB(const glm::vec3& p0, const glm::vec3& p1, const gl
     };
 }
 
+// Calculate the axis-aligned bounding box of a mesh triangle referenced using a MeshTrianglePair.
 AxisAlignedBox getTriangleAAB(const MeshTrianglePair& meshTrianglePair)
 {
     std::vector<glm::uvec3>& triangles = meshTrianglePair.mesh->triangles;
@@ -48,6 +51,7 @@ AxisAlignedBox getTriangleAAB(const MeshTrianglePair& meshTrianglePair)
     return getTriangleAAB(p0, p1, p2);
 }
 
+// Merge two AxisAlignedBoxes into one that contains both with minimal size.
 AxisAlignedBox mergeAABs(const AxisAlignedBox& A, const AxisAlignedBox& B)
 {
     return AxisAlignedBox {
@@ -56,6 +60,7 @@ AxisAlignedBox mergeAABs(const AxisAlignedBox& A, const AxisAlignedBox& B)
     };
 }
 
+// Sort the indices according to the triangle centroids in the chosen direction and return the median index.
 size_t getMedian(const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction)
 {
     std::sort(indices.begin(), indices.end(), [meshTrianglePairs, direction](const size_t a, const size_t b) {
@@ -65,6 +70,7 @@ size_t getMedian(const std::span<size_t>& indices, const std::span<MeshTriangleP
     return indices.size() / 2;
 }
 
+// Create a Node for the given indices of scene triangles and return its index in nodes.
 size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction, int currentDepth, int maxDepth = -1)
 {
     Node result;
@@ -98,6 +104,7 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
     return nodes.size() - 1;
 }
 
+// Constructor. Receives the scene and builds the bounding volume hierarchy.
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {

@@ -14,6 +14,7 @@ struct MeshTrianglePair {
 };
 
 struct Node {
+    // Indices in either in meshTrianglePairs or Nodes, the former if the Node is a leaf and the latter if it is not. You can assume children is of size 2 if the node is an internal node.
     std::vector<size_t> children;
     AxisAlignedBox axisAlignedBox;
     bool isLeaf;
@@ -49,6 +50,7 @@ private:
     int m_numLevels;
     int m_numLeaves;
     Scene* m_pScene;
+    // root will be -1 for an empty tree (for example for the "Spheres" scene). Otherwise it will be the index where the root node resides in nodes.
     size_t root;
     std::vector<Node> nodes;
     std::vector<MeshTrianglePair> meshTrianglePairs;
