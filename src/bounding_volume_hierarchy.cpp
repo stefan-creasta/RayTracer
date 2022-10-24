@@ -61,6 +61,23 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
 }
 
+void BoundingVolumeHierarchy::triangleIntersectUpdate(const glm::uvec3& tri, HitInfo& hitInfo, const Ray& ray, const Mesh& mesh, const Features& features) const{
+
+    const auto v0 = mesh.vertices[tri[0]];
+    const auto v1 = mesh.vertices[tri[1]];
+    const auto v2 = mesh.vertices[tri[2]];
+    const auto point = ray.origin + ray.t * ray.direction;
+
+    hitInfo.material = mesh.material;
+    hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, point);
+    if (features.enableNormalInterp) {
+        hitInfo.normal = interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord);
+    }
+    else {
+        hitInfo.normal = v0.normal;
+    }
+    hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+}
 
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
@@ -72,20 +89,36 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
     if (!features.enableAccelStructure) {
         bool hit = false;
         // Intersect with all triangles of all meshes.
+        Vertex last0, last1, last2;
         for (const auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
                 const auto v0 = mesh.vertices[tri[0]];
                 const auto v1 = mesh.vertices[tri[1]];
                 const auto v2 = mesh.vertices[tri[2]];
-                if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-                    hitInfo.material = mesh.material;
+                float oldRayT = ray.t;
+                if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo) && ray.t > 1e-6 && ray.t < oldRayT) {
+                    if (features.enableNormalInterp) {
+                        last0 = v0;
+                        last1 = v1;
+                        last2 = v2;
+                    }
+                    triangleIntersectUpdate(tri, hitInfo, ray, mesh, features);
                     hit = true;
+                }
+                else {
+                    ray.t = oldRayT;
                 }
             }
         }
         // Intersect with spheres.
         for (const auto& sphere : m_pScene->spheres)
             hit |= intersectRayWithShape(sphere, ray, hitInfo);
+
+
+        // Debug Normal Interpolation
+        if (features.enableNormalInterp) {
+            interpolateNormalDebug(last0, last1, last2, ray, hitInfo);
+        }
         return hit;
     } else {
         // TODO: implement here the bounding volume hierarchy traversal.

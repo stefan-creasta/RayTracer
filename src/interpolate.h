@@ -1,5 +1,6 @@
 #pragma once
-
+#include <framework/mesh.h>
+#include "draw.h"
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
 #include <glm/vec2.hpp>
@@ -13,6 +14,9 @@ glm::vec3 computeBarycentricCoord(const glm::vec3& v0, const glm::vec3& v1, cons
 // Interpolate three normals using barycentric coordinates
 // returns the interpolated normal
 glm::vec3 interpolateNormal(const glm::vec3& n0, const glm::vec3& n1, const glm::vec3& n2, const glm::vec3 barycentricCoord);
+
+// Draw 3 separate rays for each vertex normal and one ray for the interpolated hitPoint normal
+void interpolateNormalDebug(const Vertex v0, const Vertex v1, const Vertex v2, const Ray ray, const HitInfo HitInfo);
 
 // Interpolate three texture coordinates using barycentric coordinates
 // returns the interpolated texture coordinates
