@@ -5,6 +5,8 @@
 #include "texture.h"
 #include "interpolate.h"
 #include <glm/glm.hpp>
+#include <queue>
+#include <iostream>
 
 // Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
 void calculateCentroid(MeshTrianglePair& meshTrianglePair)
@@ -225,11 +227,30 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
 // file you like, including bounding_volume_hierarchy.h.
+/** struct myComp {
+    constexpr bool operator()(
+        Node const& a,
+        Node const& b)
+        const noexcept
+    {
+        return a.t < b.t;
+    }
+};**/
+float INF = std::numeric_limits<float>::infinity();
+class Compare {
+public:
+    bool operator()(Node a, Node b) {
+        return a.t > b.t;
+    }
+};
 bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const
 {
+    bool hit = false;
+    // Intersect with spheres.
+    for (const auto& sphere : m_pScene->spheres)
+        hit |= intersectRayWithShape(sphere, ray, hitInfo);
     // If BVH is not enabled, use the naive implementation.
     if (!features.enableAccelStructure) {
-        bool hit = false;
         // Intersect with all triangles of all meshes.
         for (const auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
@@ -242,14 +263,77 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 }
             }
         }
-        // Intersect with spheres.
-        for (const auto& sphere : m_pScene->spheres)
-            hit |= intersectRayWithShape(sphere, ray, hitInfo);
         return hit;
     } else {
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
-        return false;
+        std::priority_queue<Node, std::vector<Node>, Compare> pq;
+        if (root == -1) {
+            return hit;
+        }
+        pq.push(nodes[root]);
+        bool hitTri = false;
+        float sphereT = ray.t;
+        float minT = INF;
+        int minTri = -1;
+        while (!pq.empty()) {
+            Node front = pq.top();
+            pq.pop();
+            if (minT < front.t) {
+                drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
+                continue;
+            }
+            drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
+            if (front.isLeaf == true) {
+                ray.t = INF;
+                for (size_t currentChild : front.children) {
+                    MeshTrianglePair pair = meshTrianglePairs[currentChild];
+                    Mesh mesh = *pair.mesh;
+                    glm::uvec3 tri = mesh.triangles[pair.triangle];
+                    const auto v0 = mesh.vertices[tri[0]];
+                    const auto v1 = mesh.vertices[tri[1]];
+                    const auto v2 = mesh.vertices[tri[2]];
+                    if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+                        hitInfo.material = mesh.material;
+                        hitTri = true;
+                        if (ray.t < minT)
+                            minTri = currentChild;
+                    }
+                }
+                if (hitTri == true) {
+                    if (ray.t < minT) {
+                        minT = ray.t;
+                    }
+                }
+            } else {
+                Node left = nodes[front.children[0]];
+                Node right = nodes[front.children[1]];
+                ray.t = INF;
+                if (intersectRayWithShape(left.axisAlignedBox, ray) == true) {
+                    left.t = ray.t;
+                    pq.push(left);
+                }
+                ray.t = INF;
+                if (intersectRayWithShape(right.axisAlignedBox, ray) == true) {
+                    right.t = ray.t;
+                    pq.push(right);
+                }
+            }
+        }
+        if (ray.t > minT) {
+            ray.t = minT;
+        }
+        if (sphereT > minT) {
+            MeshTrianglePair pair = meshTrianglePairs[minTri];
+            Mesh mesh = *pair.mesh;
+            glm::uvec3 tri = mesh.triangles[pair.triangle];
+            const auto v0 = mesh.vertices[tri[0]];
+            const auto v1 = mesh.vertices[tri[1]];
+            const auto v2 = mesh.vertices[tri[2]];
+            drawTriangle(v0, v1, v2);
+        }
+        return hit | hitTri;
     }
+    return hit;
 }
