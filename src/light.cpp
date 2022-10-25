@@ -7,11 +7,10 @@ DISABLE_WARNINGS_PUSH()
 DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <random>
-bool flag = false; // debug random light samples
 #include <iostream>
 glm::vec3 posForDebug = glm::vec3(-10000.0f);
-std::vector<glm::vec3> prevPos;
-std::vector<glm::vec3> prevCol;
+std::vector<std::vector<glm::vec3>> prevPos;
+std::vector<std::vector<glm::vec3>> prevCol;
 
 
 float getRandomVal()
@@ -120,11 +119,68 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 {
     if (features.enableShading) {
         glm::vec3 med = {0, 0, 0};
+        if (prevPos.size() == 0) {
+            for (const auto& light : scene.lights) {
+                std::vector<glm::vec3> currentLight;
+                std::vector<glm::vec3> currentColor;
+                if (std::holds_alternative<PointLight>(light)) {
+                    const PointLight pointLight = std::get<PointLight>(light);
+                    if (features.enableHardShadow) {
+                        currentLight.push_back(pointLight.position);
+                        currentColor.push_back(pointLight.color);
+                    }
 
-        for (const auto& light : scene.lights) {
-            if (std::holds_alternative<PointLight>(light)) {
+                } else if (std::holds_alternative<SegmentLight>(light)) {
+                    const SegmentLight segmentLight = std::get<SegmentLight>(light);
+                    // Perform your calculations for a segment light.
+                    if (features.enableSoftShadow) {
+                        int sampleSize = 50;
+                        for (int i = 0; i < sampleSize; i++) {
+                            glm::vec3 pos;
+                            glm::vec3 col;
+                            sampleSegmentLight(segmentLight, pos, col);
+                            currentLight.push_back(pos);
+                            currentColor.push_back(col);
+                        }
+                    }
+                } else if (std::holds_alternative<ParallelogramLight>(light)) {
+                    const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+                    // Perform your calculations for a parallelogram light.
+                    if (features.enableSoftShadow) {
+                        int sampleSize = 50;
+                        for (int i = 0; i < sampleSize; i++) {
+                            glm::vec3 pos;
+                            glm::vec3 col;
+                            sampleParallelogramLight(parallelogramLight, pos, col);
+                            currentLight.push_back(pos);
+                            currentColor.push_back(col);
+                        }
+                    }
+                }
+                prevPos.push_back(currentLight);
+                prevCol.push_back(currentColor);
+            }
+        }
+        for (int i = 0; i < prevPos.size(); i++) {
+            std::vector<glm::vec3> currentLight;
+            std::vector<glm::vec3> currentColor;
+            currentLight = prevPos[i];
+            currentColor = prevCol[i];
+            glm::vec3 avgColor(0.0f);
+            //std::cout << currentLight.size() << std::endl;
+            for (int j = 0; j < currentLight.size(); j++) {
+
+                glm::vec3 pos = currentLight[j];
+                glm::vec3 col = currentColor[j];
+                avgColor += computeShading(pos, col, features, ray, hitInfo) * testVisibilityLightSample(pos, col, bvh, features, ray, hitInfo);
+            }
+            avgColor = avgColor * (1.0f / float(currentLight.size()));
+            med += avgColor;
+            /** if (std::holds_alternative<PointLight>(light)) {
                 const PointLight pointLight = std::get<PointLight>(light);
-                if (features.enableHardShadow)
+                currentLight.push_back(pointLight.position);
+                currentColor.push_back(pointLight.color);
+                if ()
                     med += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo) * testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
                 else
                     med += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
@@ -135,64 +191,40 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 if (features.enableSoftShadow) {
                     int sampleSize = 50;
                     glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
-                    //DEBUG FOR SEGMENT LIGHT
-                    glm::vec3 pos = ray.t * ray.direction + ray.origin;
-                    float eps = 1e-6;
-                    if (std::fabs(posForDebug.x - pos.x) < eps || std::fabs(posForDebug.y - pos.y) < eps || std::fabs(posForDebug.z - pos.z) < eps) {
-                        flag = false;
-                        prevCol.clear();
-                        prevPos.clear();
-                    }
-                    //DEBUG FOR SEGMENT LIGHT
                     for (int i = 0; i < sampleSize; i++) {
                         glm::vec3 pos;
                         glm::vec3 col;
-                        if (flag == false) {
-                            sampleSegmentLight(segmentLight, pos, col);
-                            prevPos.push_back(pos);
-                            prevCol.push_back(col);
-                        } else {
-                            pos = prevPos[i];
-                            col = prevCol[i];
-                        }
+                        sampleSegmentLight(segmentLight, pos, col);
+                        currentLight.push_back(pos);
+                        currentColor.push_back(col);
+                        pos = prevPos[i];
+                        col = prevCol[i];
                         avgColor += computeShading(pos, col, features, ray, hitInfo) * testVisibilityLightSample(pos, col, bvh, features, ray, hitInfo);
                     }
-                    flag = true;
                     med += avgColor * float((1.0 / float(sampleSize)));
                 }
-            } else if (std::holds_alternative<ParallelogramLight>(light)) { 
+            } else if (std::holds_alternative<ParallelogramLight>(light)) {
                 const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
                 // Perform your calculations for a parallelogram light.
                 if (features.enableSoftShadow) {
                     int sampleSize = 50;
                     glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
-                    // DEBUG FOR PARALLELOGRAM LIGHT
-                    glm::vec3 pos = ray.t * ray.direction + ray.origin;
-                    float eps = 1e-6;
-                    if (std::fabs(posForDebug.x - pos.x) < eps || std::fabs(posForDebug.y - pos.y) < eps || std::fabs(posForDebug.z - pos.z) < eps) {
-                        flag = false;
-                        prevCol.clear();
-                        prevPos.clear();
-                    }
-                    // DEBUG FOR PARALLELOGRAM LIGHT
                     for (int i = 0; i < sampleSize; i++) {
                         glm::vec3 pos;
                         glm::vec3 col;
-                        if (flag == false) {
-                            sampleParallelogramLight(parallelogramLight, pos, col);
-                            prevPos.push_back(pos);
-                            prevCol.push_back(col);
-                        } else {
-                            pos = prevPos[i];
-                            col = prevCol[i];
-                        }
+                        sampleParallelogramLight(parallelogramLight, pos, col);
+                        currentLight.push_back(pos);
+                        currentColor.push_back(col);
+                        pos = prevPos[i];
+                        col = prevCol[i];
                         // std::cout << pos.x << " " << pos.y << " " << pos.z << std::endl;
                         avgColor += computeShading(pos, col, features, ray, hitInfo) * testVisibilityLightSample(pos, col, bvh, features, ray, hitInfo);
                     }
-                    flag = true;
                     med += avgColor * float((1.0 / float(sampleSize)));
                 }
             }
+            prevPos.push_back(currentLight);
+            prevCol.push_back(currentColor);**/
         }
         return med;
     } else {
