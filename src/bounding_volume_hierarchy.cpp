@@ -268,14 +268,20 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
+        float sphereT = ray.t;
         std::priority_queue<Node, std::vector<Node>, Compare> pq;
         if (root == -1) {
             return hit;
+        } else {
+            ray.t = INF;
+            Node rootNode = nodes[root];
+            if (!intersectRayWithShape(rootNode.axisAlignedBox, ray))
+                return hit;
+            rootNode.t = ray.t;
+            pq.push(rootNode);
         }
-        pq.push(nodes[root]);
         bool hitTri = false;
-        float sphereT = ray.t;
-        float minT = INF;
+        float minT = sphereT;
         int minTri = -1;
         while (!pq.empty()) {
             Node front = pq.top();
@@ -314,6 +320,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                     left.t = ray.t;
                     pq.push(left);
                 }
+                
                 ray.t = INF;
                 if (intersectRayWithShape(right.axisAlignedBox, ray) == true) {
                     right.t = ray.t;
@@ -321,9 +328,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 }
             }
         }
-        if (ray.t > minT) {
-            ray.t = minT;
-        }
+        ray.t = minT;
         if (sphereT > minT) {
             MeshTrianglePair pair = meshTrianglePairs[minTri];
             Mesh mesh = *pair.mesh;
@@ -333,7 +338,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto v2 = mesh.vertices[tri[2]];
             drawTriangle(v0, v1, v2);
         }
-        return hit | hitTri;
+        return hit || hitTri;
     }
     return hit;
 }
