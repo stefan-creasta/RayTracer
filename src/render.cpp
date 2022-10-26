@@ -6,23 +6,27 @@
 #ifdef NDEBUG
 #include <omp.h>
 #endif
+#include <iostream>
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo, features)) {
-
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
-
+        glm::vec3 color = { 1, 1, 1 };
         if (features.enableRecursive) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
-            // TODO: put your own implementation of recursive ray tracing here.
+            if (rayDepth > 0 && hitInfo.material.ks != glm::vec3 {0.0, 0.0, 0.0}) {
+                color = getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
+            }
+            else {
+                drawRay(ray, Lo);
+                return Lo;
+            }
+            drawRay(ray, color * hitInfo.material.ks + Lo);
+            return Lo + color * hitInfo.material.ks;
         }
-
-        // Draw a white debug ray if the ray hits.
-        drawRay(ray, glm::vec3(1.0f));
-
-        // Set the color of the pixel to white if the ray hits.
+        drawRay(ray, Lo);
         return Lo;
     } else {
         // Draw a red debug ray if the ray missed.
@@ -47,7 +51,7 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features, 1));
         }
     }
 }
