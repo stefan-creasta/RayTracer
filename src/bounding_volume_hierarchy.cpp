@@ -408,6 +408,8 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto v0 = mesh.vertices[tri[0]];
             const auto v1 = mesh.vertices[tri[1]];
             const auto v2 = mesh.vertices[tri[2]];
+            triangleIntersectUpdate(tri, hitInfo, ray, mesh, features);
+            interpolateNormalDebug(v0, v1, v2, ray, hitInfo);
             drawTriangle(v0, v1, v2);
         }
         return hit || hitTri;
