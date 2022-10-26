@@ -8,15 +8,6 @@
 #include <queue>
 #include <iostream>
 
-#define USING_SAH true
-// #define ENABLE_MAX_LEVEL
-#define MAX_LEVEL 15
-
-#ifdef ENABLE_MAX_LEVEL
-#define FINAL_MAX_LEVEL MAX_LEVEL
-#else
-#define FINAL_MAX_LEVEL -1
-#endif
 // Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
 void calculateCentroid(MeshTrianglePair& meshTrianglePair)
 {
@@ -122,7 +113,7 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
         return nodes.size() - 1;
     }
 
-    size_t median = useSAH ? getMedian(indices, meshTrianglePairs, direction) : getSAHBestSplit(indices, meshTrianglePairs, direction);
+    size_t median = useSAH ? getSAHBestSplit(indices, meshTrianglePairs, direction) : getMedian(indices, meshTrianglePairs, direction);
     const std::span<size_t> leftIndices = std::span<size_t>(indices.begin(), indices.begin() + median);
     const std::span<size_t> rightIndices = std::span<size_t>(indices.begin() + median, indices.end());
 
@@ -141,9 +132,10 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
 }
 
 // Constructor. Receives the scene and builds the bounding volume hierarchy.
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
+    std::cout << "Constructing BVH..." << std::endl;
     size_t n = 0;
     for (Mesh& mesh : pScene->meshes) {
         n += mesh.triangles.size();
@@ -177,7 +169,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         }
     }
 
-    root = bvhSplitHelper(pScene, nodes, indices, meshTrianglePairs, 0, 0, FINAL_MAX_LEVEL, USING_SAH);
+    root = bvhSplitHelper(pScene, nodes, indices, meshTrianglePairs, 0, 0, glm::ceil(glm::log2((float) n)), features.extra.enableBvhSahBinning);
     m_numLevels = nodes[root].numLevels;
     m_numLeaves = nodes[root].numLeaves;
 }
@@ -321,10 +313,10 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             Node front = pq.top();
             pq.pop();
             if (minT < front.t) {
-                //drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
+                drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
                 continue;
             }
-            //drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
+            drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
             if (front.isLeaf == true) {
                 ray.t = INF;
                 for (size_t currentChild : front.children) {
