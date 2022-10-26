@@ -88,7 +88,8 @@ size_t getSAHBestSplit(const std::span<size_t>& indices, const std::span<MeshTri
     size_t minIndex = 0;
     for (size_t i = 1; i < indices.size(); i++) {
         MeshTrianglePair& center = meshTrianglePairs[indices[i]];
-        float cost = -((center.centroid[direction] - minimum) * i + (maximum - center.centroid[direction]) * (indices.size() - i));
+        MeshTrianglePair& prev = meshTrianglePairs[indices[i - 1]];
+        float cost = -((prev.centroid[direction] - minimum) * i + (maximum - center.centroid[direction]) * (indices.size() - i));
         if (minCost > cost) {
             minCost = cost;
             minIndex = i;
@@ -135,7 +136,6 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
-    std::cout << "Constructing BVH..." << std::endl;
     size_t n = 0;
     for (Mesh& mesh : pScene->meshes) {
         n += mesh.triangles.size();
