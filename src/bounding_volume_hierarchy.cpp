@@ -5,7 +5,7 @@
 #include "texture.h"
 #include "interpolate.h"
 #include <glm/glm.hpp>
-#include <queue>
+#include <stack>
 #include <iostream>
 
 // Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
@@ -62,18 +62,43 @@ AxisAlignedBox mergeAABs(const AxisAlignedBox& A, const AxisAlignedBox& B)
     };
 }
 
-// Sort the indices according to the triangle centroids in the chosen direction and return the median index.
+// Partially sort the indices according to the triangle centroids in the chosen direction and return the median index.
 size_t getMedian(const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction)
 {
-    std::sort(indices.begin(), indices.end(), [meshTrianglePairs, direction](const size_t a, const size_t b) {
+    std::nth_element(
+        indices.begin(), indices.begin() + indices.size() / 2, indices.end(), [meshTrianglePairs, direction](const size_t a, const size_t b) {
         return (
             (direction == 0) && (meshTrianglePairs[a].centroid.x > meshTrianglePairs[b].centroid.x) || (direction == 1) && (meshTrianglePairs[a].centroid.y > meshTrianglePairs[b].centroid.y) || (direction == 2) && (meshTrianglePairs[a].centroid.z > meshTrianglePairs[b].centroid.z));
     });
     return indices.size() / 2;
 }
 
+// Sort the indices according to the triangle centroids in the chosen direction and return the best split index according to the SAH.
+size_t getSAHBestSplit(const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction)
+{
+    std::sort(
+        indices.begin(), indices.end(), [meshTrianglePairs, direction](const size_t a, const size_t b) {
+            return (
+                (direction == 0) && (meshTrianglePairs[a].centroid.x > meshTrianglePairs[b].centroid.x) || (direction == 1) && (meshTrianglePairs[a].centroid.y > meshTrianglePairs[b].centroid.y) || (direction == 2) && (meshTrianglePairs[a].centroid.z > meshTrianglePairs[b].centroid.z));
+        });
+    const MeshTrianglePair& first = meshTrianglePairs[indices[0]];
+    const MeshTrianglePair& last = meshTrianglePairs[indices[indices.size() - 1]];
+    float minimum = first.centroid[direction], maximum = last.centroid[direction];
+    float minCost = std::numeric_limits<float>::infinity();
+    size_t minIndex = 0;
+    for (size_t i = 1; i < indices.size(); i++) {
+        MeshTrianglePair& center = meshTrianglePairs[indices[i]];
+        float cost = -((center.centroid[direction] - minimum) * i + (maximum - center.centroid[direction]) * (indices.size() - i));
+        if (minCost > cost) {
+            minCost = cost;
+            minIndex = i;
+        }
+    }
+    return minIndex;
+}
+
 // Create a Node for the given indices of scene triangles and return its index in nodes.
-size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction, int currentDepth, int maxDepth = -1)
+size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction, int currentDepth, int maxDepth = -1, bool useSAH = false)
 {
     Node result;
 
@@ -88,12 +113,12 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
         return nodes.size() - 1;
     }
 
-    size_t median = getMedian(indices, meshTrianglePairs, direction);
+    size_t median = useSAH ? getSAHBestSplit(indices, meshTrianglePairs, direction) : getMedian(indices, meshTrianglePairs, direction);
     const std::span<size_t> leftIndices = std::span<size_t>(indices.begin(), indices.begin() + median);
     const std::span<size_t> rightIndices = std::span<size_t>(indices.begin() + median, indices.end());
 
-    size_t left = bvhSplitHelper(pScene, nodes, leftIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth);
-    size_t right = bvhSplitHelper(pScene, nodes, rightIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth);
+    size_t left = bvhSplitHelper(pScene, nodes, leftIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth, useSAH);
+    size_t right = bvhSplitHelper(pScene, nodes, rightIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth, useSAH);
 
     nodes.push_back(Node { 
         { left, right }, 
@@ -107,9 +132,10 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
 }
 
 // Constructor. Receives the scene and builds the bounding volume hierarchy.
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
+    std::cout << "Constructing BVH..." << std::endl;
     size_t n = 0;
     for (Mesh& mesh : pScene->meshes) {
         n += mesh.triangles.size();
@@ -143,7 +169,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         }
     }
 
-    root = bvhSplitHelper(pScene, nodes, indices, meshTrianglePairs, 0, 0);
+    root = bvhSplitHelper(pScene, nodes, indices, meshTrianglePairs, 0, 0, glm::ceil(0.8 * glm::log2((float) n)), features.extra.enableBvhSahBinning);
     m_numLevels = nodes[root].numLevels;
     m_numLeaves = nodes[root].numLeaves;
 }
@@ -227,15 +253,6 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
 // file you like, including bounding_volume_hierarchy.h.
-/** struct myComp {
-    constexpr bool operator()(
-        Node const& a,
-        Node const& b)
-        const noexcept
-    {
-        return a.t < b.t;
-    }
-};**/
 float INF = std::numeric_limits<float>::infinity();
 class Compare {
 public:
@@ -268,25 +285,37 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
-        std::priority_queue<Node, std::vector<Node>, Compare> pq;
+        std::stack<Node> pq;
         if (root == -1) {
             return hit;
+        } else {
+            Node rootNode = nodes[root];
+
+            const float prevT = ray.t;
+            bool rootHit = intersectRayWithShape(rootNode.axisAlignedBox, ray);
+            rootNode.t = ray.t;
+            ray.t = prevT;
+
+            if (!rootHit)
+                return hit;
+
+            pq.push(rootNode);
         }
-        pq.push(nodes[root]);
+
         bool hitTri = false;
-        float sphereT = ray.t;
-        float minT = INF;
         int minTri = -1;
+
         while (!pq.empty()) {
             Node front = pq.top();
             pq.pop();
-            if (minT < front.t) {
+
+            if (ray.t < front.t) {
                 drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
                 continue;
             }
             drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
+
             if (front.isLeaf == true) {
-                ray.t = INF;
                 for (size_t currentChild : front.children) {
                     MeshTrianglePair pair = meshTrianglePairs[currentChild];
                     Mesh mesh = *pair.mesh;
@@ -297,34 +326,46 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                     if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                         hitInfo.material = mesh.material;
                         hitTri = true;
-                        if (ray.t < minT)
-                            minTri = currentChild;
-                    }
-                }
-                if (hitTri == true) {
-                    if (ray.t < minT) {
-                        minT = ray.t;
+                        minTri = currentChild;
                     }
                 }
             } else {
                 Node left = nodes[front.children[0]];
                 Node right = nodes[front.children[1]];
+
+                const float prevT = ray.t;
+
                 ray.t = INF;
-                if (intersectRayWithShape(left.axisAlignedBox, ray) == true) {
-                    left.t = ray.t;
+                bool leftHit = intersectRayWithShape(left.axisAlignedBox, ray);
+                left.t = ray.t;
+
+                ray.t = INF;
+                bool rightHit = intersectRayWithShape(right.axisAlignedBox, ray);
+                right.t = ray.t;
+
+                ray.t = prevT;
+
+                if (leftHit && rightHit) { 
+                    if (left.t < right.t) { 
+                        pq.push(right);
+                        pq.push(left);
+                    } else {
+                        pq.push(left);
+                        pq.push(right);
+                    }
+                    continue;
+                }
+
+                if (leftHit) {
                     pq.push(left);
                 }
-                ray.t = INF;
-                if (intersectRayWithShape(right.axisAlignedBox, ray) == true) {
-                    right.t = ray.t;
+                
+                if (rightHit) {
                     pq.push(right);
                 }
             }
         }
-        if (ray.t > minT) {
-            ray.t = minT;
-        }
-        if (sphereT > minT) {
+        if (hitTri) {
             MeshTrianglePair pair = meshTrianglePairs[minTri];
             Mesh mesh = *pair.mesh;
             glm::uvec3 tri = mesh.triangles[pair.triangle];
@@ -333,7 +374,6 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto v2 = mesh.vertices[tri[2]];
             drawTriangle(v0, v1, v2);
         }
-        return hit | hitTri;
+        return hit || hitTri;
     }
-    return hit;
 }

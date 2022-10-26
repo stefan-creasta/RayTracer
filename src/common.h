@@ -53,7 +53,7 @@ struct ParallelogramLight {
 
 struct ExtraFeatures {
     bool enableEnvironmentMapping = false;
-    bool enableBvhSahBinning = false;
+    bool enableBvhSahBinning = true;
     bool enableMotionBlur = false;
     bool enableBloomEffect = false;
     bool enableBilinearTextureFiltering = false;
