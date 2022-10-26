@@ -5,7 +5,7 @@
 #include "texture.h"
 #include "interpolate.h"
 #include <glm/glm.hpp>
-#include <queue>
+#include <stack>
 #include <iostream>
 
 // Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
@@ -169,7 +169,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& 
         }
     }
 
-    root = bvhSplitHelper(pScene, nodes, indices, meshTrianglePairs, 0, 0, glm::ceil(glm::log2((float) n)), features.extra.enableBvhSahBinning);
+    root = bvhSplitHelper(pScene, nodes, indices, meshTrianglePairs, 0, 0, glm::ceil(0.8 * glm::log2((float) n)), features.extra.enableBvhSahBinning);
     m_numLevels = nodes[root].numLevels;
     m_numLeaves = nodes[root].numLeaves;
 }
@@ -253,15 +253,6 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
 // file you like, including bounding_volume_hierarchy.h.
-/** struct myComp {
-    constexpr bool operator()(
-        Node const& a,
-        Node const& b)
-        const noexcept
-    {
-        return a.t < b.t;
-    }
-};**/
 float INF = std::numeric_limits<float>::infinity();
 class Compare {
 public:
@@ -294,31 +285,37 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
-        float sphereT = ray.t;
-        std::priority_queue<Node, std::vector<Node>, Compare> pq;
+        std::stack<Node> pq;
         if (root == -1) {
             return hit;
         } else {
-            ray.t = INF;
             Node rootNode = nodes[root];
-            if (!intersectRayWithShape(rootNode.axisAlignedBox, ray))
-                return hit;
+
+            const float prevT = ray.t;
+            bool rootHit = intersectRayWithShape(rootNode.axisAlignedBox, ray);
             rootNode.t = ray.t;
+            ray.t = prevT;
+
+            if (!rootHit)
+                return hit;
+
             pq.push(rootNode);
         }
+
         bool hitTri = false;
-        float minT = sphereT;
         int minTri = -1;
+
         while (!pq.empty()) {
             Node front = pq.top();
             pq.pop();
-            if (minT < front.t) {
+
+            if (ray.t < front.t) {
                 drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
                 continue;
             }
             drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
+
             if (front.isLeaf == true) {
-                ray.t = INF;
                 for (size_t currentChild : front.children) {
                     MeshTrianglePair pair = meshTrianglePairs[currentChild];
                     Mesh mesh = *pair.mesh;
@@ -329,42 +326,54 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                     if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                         hitInfo.material = mesh.material;
                         hitTri = true;
-                        if (ray.t < minT)
-                            minTri = currentChild;
-                    }
-                }
-                if (hitTri == true) {
-                    if (ray.t < minT) {
-                        minT = ray.t;
+                        minTri = currentChild;
                     }
                 }
             } else {
                 Node left = nodes[front.children[0]];
                 Node right = nodes[front.children[1]];
+
+                const float prevT = ray.t;
+
                 ray.t = INF;
-                if (intersectRayWithShape(left.axisAlignedBox, ray) == true) {
-                    left.t = ray.t;
+                bool leftHit = intersectRayWithShape(left.axisAlignedBox, ray);
+                left.t = ray.t;
+
+                ray.t = INF;
+                bool rightHit = intersectRayWithShape(right.axisAlignedBox, ray);
+                right.t = ray.t;
+
+                ray.t = prevT;
+
+                if (leftHit && rightHit) { 
+                    if (left.t < right.t) { 
+                        pq.push(right);
+                        pq.push(left);
+                    } else {
+                        pq.push(left);
+                        pq.push(right);
+                    }
+                    continue;
+                }
+
+                if (leftHit) {
                     pq.push(left);
                 }
                 
-                ray.t = INF;
-                if (intersectRayWithShape(right.axisAlignedBox, ray) == true) {
-                    right.t = ray.t;
+                if (rightHit) {
                     pq.push(right);
                 }
             }
         }
-        ray.t = minT;
-        if (sphereT > minT) {
+        if (hitTri) {
             MeshTrianglePair pair = meshTrianglePairs[minTri];
             Mesh mesh = *pair.mesh;
             glm::uvec3 tri = mesh.triangles[pair.triangle];
             const auto v0 = mesh.vertices[tri[0]];
             const auto v1 = mesh.vertices[tri[1]];
             const auto v2 = mesh.vertices[tri[2]];
-            //drawTriangle(v0, v1, v2);
+            drawTriangle(v0, v1, v2);
         }
         return hit || hitTri;
     }
-    return hit;
 }
