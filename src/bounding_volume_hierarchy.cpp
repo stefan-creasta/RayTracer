@@ -116,7 +116,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
 
 
         // Debug Normal Interpolation
-        if (features.enableNormalInterp) {
+        if (features.enableNormalInterp && hit == true) {
             interpolateNormalDebug(last0, last1, last2, ray, hitInfo);
         }
         return hit;
