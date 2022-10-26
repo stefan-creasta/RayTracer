@@ -8,6 +8,15 @@
 #include <queue>
 #include <iostream>
 
+#define USING_SAH true
+// #define ENABLE_MAX_LEVEL
+#define MAX_LEVEL 15
+
+#ifdef ENABLE_MAX_LEVEL
+#define FINAL_MAX_LEVEL MAX_LEVEL
+#else
+#define FINAL_MAX_LEVEL -1
+#endif
 // Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
 void calculateCentroid(MeshTrianglePair& meshTrianglePair)
 {
@@ -62,18 +71,43 @@ AxisAlignedBox mergeAABs(const AxisAlignedBox& A, const AxisAlignedBox& B)
     };
 }
 
-// Sort the indices according to the triangle centroids in the chosen direction and return the median index.
+// Partially sort the indices according to the triangle centroids in the chosen direction and return the median index.
 size_t getMedian(const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction)
 {
-    std::sort(indices.begin(), indices.end(), [meshTrianglePairs, direction](const size_t a, const size_t b) {
+    std::nth_element(
+        indices.begin(), indices.begin() + indices.size() / 2, indices.end(), [meshTrianglePairs, direction](const size_t a, const size_t b) {
         return (
             (direction == 0) && (meshTrianglePairs[a].centroid.x > meshTrianglePairs[b].centroid.x) || (direction == 1) && (meshTrianglePairs[a].centroid.y > meshTrianglePairs[b].centroid.y) || (direction == 2) && (meshTrianglePairs[a].centroid.z > meshTrianglePairs[b].centroid.z));
     });
     return indices.size() / 2;
 }
 
+// Sort the indices according to the triangle centroids in the chosen direction and return the best split index according to the SAH.
+size_t getSAHBestSplit(const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction)
+{
+    std::sort(
+        indices.begin(), indices.end(), [meshTrianglePairs, direction](const size_t a, const size_t b) {
+            return (
+                (direction == 0) && (meshTrianglePairs[a].centroid.x > meshTrianglePairs[b].centroid.x) || (direction == 1) && (meshTrianglePairs[a].centroid.y > meshTrianglePairs[b].centroid.y) || (direction == 2) && (meshTrianglePairs[a].centroid.z > meshTrianglePairs[b].centroid.z));
+        });
+    const MeshTrianglePair& first = meshTrianglePairs[indices[0]];
+    const MeshTrianglePair& last = meshTrianglePairs[indices[indices.size() - 1]];
+    float minimum = first.centroid[direction], maximum = last.centroid[direction];
+    float minCost = std::numeric_limits<float>::infinity();
+    size_t minIndex = 0;
+    for (size_t i = 1; i < indices.size(); i++) {
+        MeshTrianglePair& center = meshTrianglePairs[indices[i]];
+        float cost = -((center.centroid[direction] - minimum) * i + (maximum - center.centroid[direction]) * (indices.size() - i));
+        if (minCost > cost) {
+            minCost = cost;
+            minIndex = i;
+        }
+    }
+    return minIndex;
+}
+
 // Create a Node for the given indices of scene triangles and return its index in nodes.
-size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction, int currentDepth, int maxDepth = -1)
+size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<size_t>& indices, const std::span<MeshTrianglePair>& meshTrianglePairs, int direction, int currentDepth, int maxDepth = -1, bool useSAH = false)
 {
     Node result;
 
@@ -88,12 +122,12 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
         return nodes.size() - 1;
     }
 
-    size_t median = getMedian(indices, meshTrianglePairs, direction);
+    size_t median = useSAH ? getMedian(indices, meshTrianglePairs, direction) : getSAHBestSplit(indices, meshTrianglePairs, direction);
     const std::span<size_t> leftIndices = std::span<size_t>(indices.begin(), indices.begin() + median);
     const std::span<size_t> rightIndices = std::span<size_t>(indices.begin() + median, indices.end());
 
-    size_t left = bvhSplitHelper(pScene, nodes, leftIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth);
-    size_t right = bvhSplitHelper(pScene, nodes, rightIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth);
+    size_t left = bvhSplitHelper(pScene, nodes, leftIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth, useSAH);
+    size_t right = bvhSplitHelper(pScene, nodes, rightIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth, useSAH);
 
     nodes.push_back(Node { 
         { left, right }, 
@@ -143,7 +177,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         }
     }
 
-    root = bvhSplitHelper(pScene, nodes, indices, meshTrianglePairs, 0, 0);
+    root = bvhSplitHelper(pScene, nodes, indices, meshTrianglePairs, 0, 0, FINAL_MAX_LEVEL, USING_SAH);
     m_numLevels = nodes[root].numLevels;
     m_numLeaves = nodes[root].numLeaves;
 }
@@ -287,10 +321,10 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             Node front = pq.top();
             pq.pop();
             if (minT < front.t) {
-                drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
+                //drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
                 continue;
             }
-            drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
+            //drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
             if (front.isLeaf == true) {
                 ray.t = INF;
                 for (size_t currentChild : front.children) {
@@ -336,7 +370,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto v0 = mesh.vertices[tri[0]];
             const auto v1 = mesh.vertices[tri[1]];
             const auto v2 = mesh.vertices[tri[2]];
-            drawTriangle(v0, v1, v2);
+            //drawTriangle(v0, v1, v2);
         }
         return hit || hitTri;
     }
