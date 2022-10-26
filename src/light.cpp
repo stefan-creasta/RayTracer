@@ -171,8 +171,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             }
             if ((features.enableHardShadow && std::holds_alternative<PointLight>(light)) || (features.enableSoftShadow && std::holds_alternative<SegmentLight>(light)) || (features.enableSoftShadow && std::holds_alternative<ParallelogramLight>(light))) {
                 avgColor = avgColor * (1.0f / float(currentLight.size()));
+                med += avgColor;
             }
-            med += avgColor;
             i++;
         }
         return med;
