@@ -4,6 +4,8 @@
 #include <glm/geometric.hpp>
 #include <shading.h>
 #include <random>
+float degreeBlur = 0.01f;
+int numberOfRays = 5;
 
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
 {
@@ -45,7 +47,6 @@ Ray returnGlossyRay(Ray reflection)
     glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
     glm::vec3 u = glm::normalize(glm::cross(t, w));
     glm::vec3 v = glm::normalize(glm::cross(w, u));
-    float degreeBlur = 0.01f;
     float ua = -degreeBlur / 2.0f + degreeBlur * getRandomVal2();
     float va = -degreeBlur / 2.0f + degreeBlur * getRandomVal2();
     Ray rr = reflection;
@@ -62,9 +63,8 @@ const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
 }
 
 std::vector<Ray> glossyRays(Ray ray, HitInfo hitInfo) {
-    int sampleSize = 5;
     std::vector<Ray> rays;
-    for (int i = 1; i <= sampleSize; i++) {
+    for (int i = 1; i <= numberOfRays; i++) {
         rays.push_back(returnGlossyRay(computeReflectionRay(ray, hitInfo)));
     }
     return rays;
