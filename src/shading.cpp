@@ -3,6 +3,7 @@
 #include <cmath>
 #include <glm/geometric.hpp>
 #include <shading.h>
+#include <random>
 
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
 {
@@ -26,7 +27,7 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     return lightColor * hitInfo.material.ks * pow(glm::dot(glm::normalize(hitInfo.normal), h), hitInfo.material.shininess) + lightColor * hitInfo.material.kd * dot;
 }
 
-/** float getRandomVal()
+float getRandomVal2()
 {
     std::random_device rd;
     std::mt19937 generator(rd());
@@ -45,13 +46,13 @@ Ray returnGlossyRay(Ray reflection)
     glm::vec3 u = glm::normalize(glm::cross(t, w));
     glm::vec3 v = glm::normalize(glm::cross(w, u));
     float degreeBlur = 0.01f;
-    float ua = -degreeBlur / 2.0f + degreeBlur * getRandomVal();
-    float va = -degreeBlur / 2.0f + degreeBlur * getRandomVal();
+    float ua = -degreeBlur / 2.0f + degreeBlur * getRandomVal2();
+    float va = -degreeBlur / 2.0f + degreeBlur * getRandomVal2();
     Ray rr = reflection;
     rr.direction += ua * u + va * v;
     return rr;
 }
-**/
+
 const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
 {
     glm::vec3 point = ray.origin + ray.direction * ray.t;
