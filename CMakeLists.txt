@@ -29,6 +29,7 @@ add_library(FinalProjectLib
 	"src/interpolate.cpp"
 	"src/render.cpp"
 	"src/transparency.cpp" # EXTRA FEATURE: TRANSPARENCY
+	"src/dof.cpp" # EXTRA FEATURE : DEPTH OF FIELD
 )
 
 if (REFERENCE_MODE)

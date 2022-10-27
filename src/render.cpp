@@ -3,22 +3,24 @@
 #include "light.h"
 #include "screen.h"
 #include "transparency.h"
+#include "dof.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
 #include <omp.h>
 #endif
 #include <iostream>
+#include <random>
 
+std::vector <Ray> defaultRaysDOF;
+int rD = -1;
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo, features)) {
-        if (hitInfo.material.transparency < 1)
-            std::cout << hitInfo.material.transparency << "\n";
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
         glm::vec3 color = { 1, 1, 1 };
-        if (features.enableRecursive) {
+        if (features.enableRecursive) { // HARD STOP DEPTH OF FIELD
             Ray reflection = computeReflectionRay(ray, hitInfo);
             if (rayDepth > 0 && hitInfo.material.ks != glm::vec3 {0.0, 0.0, 0.0}) {
                 color = getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
@@ -48,6 +50,10 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
 #ifdef NDEBUG
 #pragma omp parallel for schedule(guided)
 #endif
+
+    float aperture = 0.5;
+    std::default_random_engine rng{42};
+    std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
@@ -68,7 +74,23 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
             else {
                 col = getFinalColor(scene, bvh, cameraRay, features, 1);
             }
-            //glm::vec3 color = getFinalColor(scene, bvh, cameraRay, features, 1);
+            if (features.extra.enableDepthOfField) {
+
+                
+                col = glm::vec3 {0, 0, 0};
+                float focalLength = 1.5;
+                int samples = 100;
+                
+                glm::vec3 focalPoint = getFocalPoint(cameraRay, focalLength);
+                std::vector <Ray> rays = sampledRays(focalPoint, generateSamples(cameraRay.origin, aperture, samples, rng, dist));
+                for (auto r : rays) {
+                    col += getFinalColor(scene, bvh, r, features, 0);
+                    std::cout << col[0] << " " << col[1] << " " << col[2] << "\n"; 
+                }
+
+                col = col * glm::vec3(1 / (rays.size()));
+                //std::cout << col[0] << " " << col[1] << " " << col[2] << "\n"; 
+            }
             screen.setPixel(x, y, col);
             
         }

@@ -3,6 +3,7 @@
 #include "light.h"
 #include "render.h"
 #include "screen.h"
+#include "dof.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -326,7 +327,10 @@ int main(int argc, char** argv)
                     enableDebugDraw = true;
                     glDisable(GL_LIGHTING);
                     glDepthFunc(GL_LEQUAL);
-                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features, 1); // rayDepth to 1
+                    if (config.features.extra.enableDepthOfField) {
+                        debugDepthOfField(scene, bvh, *optDebugRay, config.features, 0);
+                    }
+                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features, 0); // rayDepth to 1
                     enableDebugDraw = false;
                 }
                 glPopAttrib();
