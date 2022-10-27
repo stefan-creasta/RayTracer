@@ -7,3 +7,6 @@ const glm::vec3 computeShading (const glm::vec3& lightPosition, const glm::vec3&
 
 // Given a ray and a normal (in hitInfo), compute the reflected ray in the specular direction (mirror direction).
 const Ray computeReflectionRay (Ray ray, HitInfo hitInfo);
+
+// Given a ray and a normal (in hitInfo), compute many reflected rays to compute glossy effect.
+std::vector<Ray> glossyRays(Ray ray, HitInfo hitInfo);

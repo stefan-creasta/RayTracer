@@ -56,10 +56,16 @@ Ray returnGlossyRay(Ray reflection)
 const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
 {
     glm::vec3 point = ray.origin + ray.direction * ray.t;
-    //glm::vec3 r = glm::reflect(glm::normalize(ray.direction), glm::normalize(hitInfo.normal));
     glm::vec3 r = glm::normalize(ray.direction) - 2 * glm::dot(glm::normalize(hitInfo.normal), glm::normalize(ray.direction)) * glm::normalize(hitInfo.normal);
     Ray reflectionRay {point + float(1e-5)*r, r};
-    //drawRay(Ray{point, hitInfo.normal, 1}, glm::vec3{0,1,0.5});
     return reflectionRay;
-    //return returnGlossyRay(reflectionRay);
+}
+
+std::vector<Ray> glossyRays(Ray ray, HitInfo hitInfo) {
+    int sampleSize = 5;
+    std::vector<Ray> rays;
+    for (int i = 1; i <= sampleSize; i++) {
+        rays.push_back(returnGlossyRay(computeReflectionRay(ray, hitInfo)));
+    }
+    return rays;
 }

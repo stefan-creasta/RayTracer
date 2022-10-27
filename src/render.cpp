@@ -14,10 +14,18 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     if (bvh.intersect(ray, hitInfo, features)) {
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
         glm::vec3 color = { 1, 1, 1 };
-        if (features.enableRecursive) {
-            Ray reflection = computeReflectionRay(ray, hitInfo);
+        if (features.enableRecursive) { 
+            std::vector<Ray> rays;
+            if (!features.extra.enableGlossyReflection) {
+                rays.push_back(computeReflectionRay(ray, hitInfo));
+            } else {
+                rays = glossyRays(ray, hitInfo);
+            }
             if (rayDepth > 0 && hitInfo.material.ks != glm::vec3 {0.0, 0.0, 0.0}) {
-                color = getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
+                for (int i = 0; i < rays.size(); i++) {
+                    color += getFinalColor(scene, bvh, rays[i], features, rayDepth - 1);
+                }
+                color *= (1.0f / float(rays.size()));
             }
             else {
                 drawRay(ray, Lo);
