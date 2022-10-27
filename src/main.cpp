@@ -113,6 +113,8 @@ int main(int argc, char** argv)
                     "Dragon",
                     /* "AABBs",*/ "Spheres", /*"Mixed",*/
                     "Custom",
+                    "TextureDebug",
+                    "TransparencyDebug"
                 };
                 if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                     optDebugRay.reset();

@@ -2,16 +2,20 @@
 #include "intersect.h"
 #include "light.h"
 #include "screen.h"
+#include "transparency.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
 #include <omp.h>
 #endif
 #include <iostream>
 
+
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo, features)) {
+        if (hitInfo.material.transparency < 1)
+            std::cout << hitInfo.material.transparency << "\n";
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
         glm::vec3 color = { 1, 1, 1 };
         if (features.enableRecursive) {
@@ -21,13 +25,13 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             }
             else {
                 drawRay(ray, Lo);
-                return Lo;
+                return Lo * hitInfo.material.transparency;
             }
             drawRay(ray, color * hitInfo.material.ks + Lo);
-            return Lo + color * hitInfo.material.ks;
+            return (Lo + color * hitInfo.material.ks) * hitInfo.material.transparency;
         }
         drawRay(ray, Lo);
-        return Lo;
+        return Lo * hitInfo.material.transparency;
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -35,6 +39,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         return glm::vec3(0.0f);
     }
 }
+
 
 void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
 {
@@ -50,8 +55,22 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(x) / float(windowResolution.x) * 2.0f - 1.0f,
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
-            const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features, 1));
+            Ray cameraRay = camera.generateRay(normalizedPixelPos);
+
+
+            /*
+                Extra Feature: Transparency
+            */
+            glm::vec3 col;
+            if (features.extra.enableTransparency) {
+                col = calculateColorTransparency(scene, cameraRay, bvh, features, 1);
+            }
+            else {
+                col = getFinalColor(scene, bvh, cameraRay, features, 1);
+            }
+            //glm::vec3 color = getFinalColor(scene, bvh, cameraRay, features, 1);
+            screen.setPixel(x, y, col);
+            
         }
     }
 }

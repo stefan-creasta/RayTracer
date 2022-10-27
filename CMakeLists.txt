@@ -28,6 +28,7 @@ add_library(FinalProjectLib
 	"src/shading.cpp"
 	"src/interpolate.cpp"
 	"src/render.cpp"
+	"src/transparency.cpp" # EXTRA FEATURE: TRANSPARENCY
 )
 
 if (REFERENCE_MODE)
