@@ -5,7 +5,7 @@
 #include "texture.h"
 #include "interpolate.h"
 #include <glm/glm.hpp>
-#include <stack>
+#include <queue>
 #include <iostream>
 
 // Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
@@ -267,6 +267,17 @@ void BoundingVolumeHierarchy::triangleIntersectUpdate(const glm::uvec3& tri, Hit
     hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
 }
 
+bool isInAABB(AxisAlignedBox a, glm::vec3 x)
+{
+    if (a.lower.x <= x.x && x.x <= a.upper.x) {
+        if (a.lower.y <= x.y && x.y <= a.upper.y) {
+            if (a.lower.z <= x.z && x.z <= a.upper.z) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
@@ -321,7 +332,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
-        std::stack<Node> pq;
+        std::priority_queue<Node, std::vector<Node>, Compare> pq;
         if (root == -1) {
             return hit;
         } else {
@@ -371,34 +382,29 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
 
                 const float prevT = ray.t;
 
-                ray.t = INF;
-                bool leftHit = intersectRayWithShape(left.axisAlignedBox, ray);
-                left.t = ray.t;
-
-                ray.t = INF;
-                bool rightHit = intersectRayWithShape(right.axisAlignedBox, ray);
-                right.t = ray.t;
-
                 ray.t = prevT;
+                if (isInAABB(left.axisAlignedBox, ray.origin) == true) {
+                    left.t = 0.0f;
+                    pq.push(left);
+                } else {
 
-                if (leftHit && rightHit) { 
-                    if (left.t < right.t) { 
-                        pq.push(right);
+                    if (intersectRayWithShape(left.axisAlignedBox, ray) == true) {
+                        left.t = ray.t;
                         pq.push(left);
-                    } else {
-                        pq.push(left);
+                    }
+                }
+                ray.t = prevT;
+                if (isInAABB(right.axisAlignedBox, ray.origin) == true) {
+                    right.t = 0.0f;
+                    pq.push(right);
+                } else {
+                    if (intersectRayWithShape(right.axisAlignedBox, ray) == true) {
+                        right.t = ray.t;
                         pq.push(right);
                     }
-                    continue;
                 }
 
-                if (leftHit) {
-                    pq.push(left);
-                }
-                
-                if (rightHit) {
-                    pq.push(right);
-                }
+                ray.t = prevT;
             }
         }
         if (hitTri) {
@@ -409,7 +415,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto v1 = mesh.vertices[tri[1]];
             const auto v2 = mesh.vertices[tri[2]];
             triangleIntersectUpdate(tri, hitInfo, ray, mesh, features);
-            interpolateNormalDebug(v0, v1, v2, ray, hitInfo);
+            if (features.enableNormalInterp) interpolateNormalDebug(v0, v1, v2, ray, hitInfo);
             drawTriangle(v0, v1, v2);
         }
         return hit || hitTri;
