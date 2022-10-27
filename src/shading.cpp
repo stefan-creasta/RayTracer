@@ -20,8 +20,10 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     }
     // EXPERIMENT
     if (hitInfo.material.kdTexture && features.enableTextureMapping) {
-        //glm::vec3 texel = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
-        glm::vec3 texel = bilinearInterpolation(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
+        glm::vec3 texel = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
+        //if (!extraFeatures.enableBilinearInterpolation) { 
+        
+        //glm::vec3 texel = bilinearInterpolation(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
         return lightColor * hitInfo.material.ks * pow(glm::dot(glm::normalize(hitInfo.normal), h), hitInfo.material.shininess) + lightColor * texel * dot; 
     }
     return lightColor * hitInfo.material.ks * pow(glm::dot(glm::normalize(hitInfo.normal), h), hitInfo.material.shininess) + lightColor * hitInfo.material.kd * dot;

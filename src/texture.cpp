@@ -1,6 +1,7 @@
 #include "texture.h"
 #include <framework/image.h>
 #include <iostream>
+#include <glm/gtx/common.hpp>
 
 glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Features& features)
 {
@@ -10,11 +11,13 @@ glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Feat
 }
 
 glm::vec3 bilinearInterpolation(const Image& image, const glm::vec2& texCoord, const Features& features) {
-    glm::vec2 texelPos { image.width * texCoord[0], image.height * texCoord[1]};
-    glm::vec2 lowerPos { floor(image.width * texCoord[0]), floor(image.height * texCoord[1]) };
+    glm::vec2 texelPos { (image.width - 1) * texCoord[0], (image.height - 1) * texCoord[1]};
+    glm::vec2 lowerPos { floor((image.width - 1) * texCoord[0]), floor((image.height - 1) * texCoord[1]) };
     glm::vec2 upperPos { lowerPos.x + 1, lowerPos.y + 1 };
     float u = texelPos.x - lowerPos.x;
     float v = texelPos.y - lowerPos.y;
+    lowerPos = glm::mod(lowerPos, glm::vec2 { image.width, image.height });
+    upperPos = glm::mod(upperPos, glm::vec2 { image.width, image.height });
     glm::vec3 upperLeft = image.pixels[lowerPos.y * image.width + lowerPos.x];
     glm::vec3 lowerRight = image.pixels[upperPos.y * image.width + upperPos.x];
     glm::vec3 upperRight = image.pixels[upperPos.y * image.width + lowerPos.x];
