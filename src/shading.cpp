@@ -3,6 +3,7 @@
 #include <cmath>
 #include <glm/geometric.hpp>
 #include <shading.h>
+#include <iostream>
 
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
 {
@@ -22,17 +23,22 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     if (hitInfo.material.kdTexture && features.enableTextureMapping) {
         glm::vec3 texel = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
         if (features.extra.enableBilinearTextureFiltering) {
+
             texel = bilinearInterpolation(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
             glm::vec2 debugUV = getUVForBilinear(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
-            glm::vec3 pos = ray.origin + ray.t * ray.direction;
-            Ray rayU = Ray { pos, glm::normalize(glm::vec3 { debugUV.x, 0.0, 0.0 }), debugUV.x / 5.0f };
-            Ray rayV = Ray { pos, glm::normalize(glm::vec3 { 0.0, debugUV.y, 0.0 }), debugUV.y / 5.0f };
-            Ray rayOU = Ray { pos, glm::normalize(glm::vec3 { -debugUV.x, 0.0, 0.0 }), (1 - debugUV.x) / 5.0f };
-            Ray rayOV = Ray { pos, glm::normalize(glm::vec3 { 0.0, -debugUV.y, 0.0 }), (1 - debugUV.y) / 5.0f };
+            glm::vec3 w = glm::normalize(hitInfo.normal);
+            glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
+            glm::vec3 u = glm::normalize(glm::cross(t, w));
+            glm::vec3 v = glm::normalize(glm::cross(w, u));
+            Ray rayU = Ray { position, u, debugUV.x / 5.0f };
+            Ray rayV = Ray { position, v, debugUV.y / 5.0f };
+            Ray rayOU = Ray { position, -u, (1 - debugUV.x) / 5.0f };
+            Ray rayOV = Ray { position, -v, (1 - debugUV.y) / 5.0f };
             drawRay(rayU, glm::vec3 { 1.0f, 0.5f, 0.0f });
             drawRay(rayV, glm::vec3 { 1.0f, 0.0f, 0.5f });
             drawRay(rayOU, glm::vec3 { 1.0f, 0.5f, 0.0f });
             drawRay(rayOV, glm::vec3 { 1.0f, 0.0f, 0.5f });
+            //std::cout << rayU.origin.x << std::endl;
         }
         return lightColor * hitInfo.material.ks * pow(glm::dot(glm::normalize(hitInfo.normal), h), hitInfo.material.shininess) + lightColor * texel * dot; 
     }
