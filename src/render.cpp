@@ -11,8 +11,6 @@
 #include <iostream>
 #include <random>
 
-std::vector <Ray> defaultRaysDOF;
-int rD = -1;
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
@@ -66,12 +64,7 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 Extra Feature: Transparency
             */
             glm::vec3 col;
-            if (features.extra.enableTransparency) {
-                col = calculateColorTransparency(scene, cameraRay, bvh, features, 1);
-            }
-            else {
-                col = getFinalColor(scene, bvh, cameraRay, features, 1);
-            }
+            col = getFinalColor(scene, bvh, cameraRay, features, 1);
             screen.setPixel(x, y, col);
             
         }

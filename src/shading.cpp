@@ -10,12 +10,12 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     glm::vec3 lightDir = glm::normalize(lightPosition - position);
     float dot = glm::dot(glm::normalize(hitInfo.normal), lightDir);
     float eps = 1e-6;
-    if (dot < eps) {
+    if (dot < 0.0f) {
         return {0, 0, 0};
     }
     glm::vec3 view = ray.origin - position;
     glm::vec3 h = glm::normalize(lightDir + view);
-    if (glm::dot(h, glm::normalize(hitInfo.normal)) < eps) {
+    if (glm::dot(h, glm::normalize(hitInfo.normal)) < 0.0f) {
         return {0, 0, 0};
     }
     // EXPERIMENT
@@ -30,9 +30,7 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
 const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
 {
     glm::vec3 point = ray.origin + ray.direction * ray.t;
-    //glm::vec3 r = glm::reflect(glm::normalize(ray.direction), glm::normalize(hitInfo.normal));
     glm::vec3 r = glm::normalize(ray.direction) - 2 * glm::dot(glm::normalize(hitInfo.normal), glm::normalize(ray.direction)) * glm::normalize(hitInfo.normal);
     Ray reflectionRay {point + float(1e-5)*r, r};
-    //drawRay(Ray{point, hitInfo.normal, 1}, glm::vec3{0,1,0.5});
     return reflectionRay;
 }
