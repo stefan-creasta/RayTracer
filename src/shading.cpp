@@ -52,10 +52,10 @@ Ray returnGlossyRay(Ray reflection)
     float va = -degreeBlur / 2.0f + degreeBlur * getRandomVal2();
     Ray rr = reflection;
     rr.direction += ua * u + va * v;
-    glm::vec3 p1 = reflection.origin + u * degreeBlur * 100.0f + u * degreeBlur * 100.0f;
-    glm::vec3 p2 = reflection.origin + u * degreeBlur * 100.0f - u * degreeBlur * 100.0f;
-    glm::vec3 p3 = reflection.origin - u * degreeBlur * 100.0f + u * degreeBlur * 100.0f;
-    glm::vec3 p4 = reflection.origin - u * degreeBlur * 100.0f - u * degreeBlur * 100.0f;
+    glm::vec3 p1 = reflection.origin + u * degreeBlur + v * degreeBlur;
+    glm::vec3 p2 = reflection.origin + u * degreeBlur - v * degreeBlur;
+    glm::vec3 p3 = reflection.origin - u * degreeBlur + v * degreeBlur;
+    glm::vec3 p4 = reflection.origin - u * degreeBlur - v * degreeBlur;
     Vertex v1 = Vertex(p1, reflection.direction);
     Vertex v2 = Vertex(p2, reflection.direction);
     Vertex v3 = Vertex(p3, reflection.direction);
