@@ -25,13 +25,13 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             }
             else {
                 drawRay(ray, Lo);
-                return Lo * hitInfo.material.transparency;
+                return Lo;
             }
             drawRay(ray, color * hitInfo.material.ks + Lo);
-            return (Lo + color * hitInfo.material.ks) * hitInfo.material.transparency;
+            return (Lo + color * hitInfo.material.ks);
         }
         drawRay(ray, Lo);
-        return Lo * hitInfo.material.transparency;
+        return Lo;
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
