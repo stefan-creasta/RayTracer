@@ -3,8 +3,6 @@
 #include "intersect.h"
 
 
-
-
 glm::vec3 calculateColorTransparency(const Scene &scene, Ray &ray, const BvhInterface& bvh,  const Features &features, int rayDepth) {
     HitInfo hitInfo;
     Ray copyy = ray;

@@ -4,6 +4,7 @@
 #include "render.h"
 #include "screen.h"
 #include "dof.h"
+#include "transparency.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -328,9 +329,14 @@ int main(int argc, char** argv)
                     glDisable(GL_LIGHTING);
                     glDepthFunc(GL_LEQUAL);
                     if (config.features.extra.enableDepthOfField) {
-                        debugDepthOfField(scene, bvh, *optDebugRay, config.features, 0);
+                        debugDepthOfField(scene, bvh, *optDebugRay, config.features, 1);
                     }
-                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features, 0); // rayDepth to 1
+                    else if (config.features.extra.enableTransparency) {
+                        (void)calculateColorTransparency(scene, *optDebugRay, bvh, config.features, 0);
+                    }
+                    else {
+                        (void) getFinalColor(scene, bvh, *optDebugRay, config.features, 1);
+                    }
                     enableDebugDraw = false;
                 }
                 glPopAttrib();
@@ -358,7 +364,15 @@ int main(int argc, char** argv)
             } break;
             case ViewMode::RayTracing: {
                 screen.clear(glm::vec3(0.0f));
-                renderRayTracing(scene, camera, bvh, screen, config.features);
+                if (config.features.extra.enableDepthOfField) {
+                    renderRayTracingDepthOfField(scene, camera, bvh, screen, config.features); // Ray-tracing with depth-of-field activated
+                }
+                else if (config.features.extra.enableTransparency) {
+                    renderRayTracingTransparency(scene, camera, bvh, screen, config.features); // Basic ray-tracing
+                }
+                else {
+                    renderRayTracing(scene, camera, bvh, screen, config.features);
+                }
                 screen.setPixel(0, 0, glm::vec3(1.0f));
                 screen.draw(); // Takes the image generated using ray tracing and outputs it to the screen using OpenGL.
             } break;
