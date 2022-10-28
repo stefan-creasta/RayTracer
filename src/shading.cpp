@@ -23,6 +23,16 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
         glm::vec3 texel = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
         if (features.extra.enableBilinearTextureFiltering) {
             texel = bilinearInterpolation(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
+            glm::vec2 debugUV = getUVForBilinear(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
+            glm::vec3 pos = ray.origin + ray.t * ray.direction;
+            Ray rayU = Ray { pos, glm::normalize(glm::vec3 { debugUV.x, 0.0, 0.0 }), debugUV.x / 5.0f };
+            Ray rayV = Ray { pos, glm::normalize(glm::vec3 { 0.0, debugUV.y, 0.0 }), debugUV.y / 5.0f };
+            Ray rayOU = Ray { pos, glm::normalize(glm::vec3 { -debugUV.x, 0.0, 0.0 }), (1 - debugUV.x) / 5.0f };
+            Ray rayOV = Ray { pos, glm::normalize(glm::vec3 { 0.0, -debugUV.y, 0.0 }), (1 - debugUV.y) / 5.0f };
+            drawRay(rayU, glm::vec3 { 1.0f, 0.5f, 0.0f });
+            drawRay(rayV, glm::vec3 { 1.0f, 0.0f, 0.5f });
+            drawRay(rayOU, glm::vec3 { 1.0f, 0.5f, 0.0f });
+            drawRay(rayOV, glm::vec3 { 1.0f, 0.0f, 0.5f });
         }
         return lightColor * hitInfo.material.ks * pow(glm::dot(glm::normalize(hitInfo.normal), h), hitInfo.material.shininess) + lightColor * texel * dot; 
     }
