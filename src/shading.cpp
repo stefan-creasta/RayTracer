@@ -4,6 +4,8 @@
 #include <glm/geometric.hpp>
 #include <shading.h>
 #include <random>
+#include <draw.cpp>
+#include <iostream>
 float degreeBlur = 0.01f;
 int numberOfRays = 5;
 
@@ -40,7 +42,6 @@ float getRandomVal2()
     return randomVal;
 }
 
-
 Ray returnGlossyRay(Ray reflection)
 {
     glm::vec3 w = glm::normalize(reflection.direction);
@@ -51,6 +52,16 @@ Ray returnGlossyRay(Ray reflection)
     float va = -degreeBlur / 2.0f + degreeBlur * getRandomVal2();
     Ray rr = reflection;
     rr.direction += ua * u + va * v;
+    glm::vec3 p1 = reflection.origin + u * degreeBlur * 100.0f + u * degreeBlur * 100.0f;
+    glm::vec3 p2 = reflection.origin + u * degreeBlur * 100.0f - u * degreeBlur * 100.0f;
+    glm::vec3 p3 = reflection.origin - u * degreeBlur * 100.0f + u * degreeBlur * 100.0f;
+    glm::vec3 p4 = reflection.origin - u * degreeBlur * 100.0f - u * degreeBlur * 100.0f;
+    Vertex v1 = Vertex(p1, reflection.direction);
+    Vertex v2 = Vertex(p2, reflection.direction);
+    Vertex v3 = Vertex(p3, reflection.direction);
+    Vertex v4 = Vertex(p4, reflection.direction);
+    drawTriangle(v1, v2, v3);
+    drawTriangle(v2, v3, v4);
     return rr;
 }
 
@@ -62,10 +73,10 @@ const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
     return reflectionRay;
 }
 
-std::vector<Ray> glossyRays(Ray ray, HitInfo hitInfo) {
+std::vector<Ray> glossyRays(Ray reflection) {
     std::vector<Ray> rays;
     for (int i = 1; i <= numberOfRays; i++) {
-        rays.push_back(returnGlossyRay(computeReflectionRay(ray, hitInfo)));
+        rays.push_back(returnGlossyRay(reflection));
     }
     return rays;
 }
