@@ -4,8 +4,8 @@
 
 glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Features& features)
 {
-    int i = (image.width * texCoord[0] - 0.5f);
-    int j = (image.height * texCoord[1] - 0.5f);
+    int i = (image.width * texCoord[0]);
+    int j = (image.height * texCoord[1]);
 
     // clamp if i and j are out of range
 
