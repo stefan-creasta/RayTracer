@@ -5,6 +5,35 @@
 #include <shading.h>
 #include <iostream>
 
+ImageMipMap getMipMap(const Image& image)
+{
+    ImageMipMap mipmap;
+    mipmap.height.push_back(image.height);
+    mipmap.width.push_back(image.width);
+    mipmap.pixels.push_back(image.pixels);
+    int last = 0;
+    while (1) {
+        if (mipmap.pixels[last].size() <= 1) {
+            break;
+        }
+        std::vector<glm::vec3> vec;
+        //std::cout << mipmap.height[last] << std::endl;
+        for (int i = 0; i < mipmap.height[last]; i += 2) {
+            for (int j = 0; j < mipmap.width[last]; j += 2) {
+                image.pixels[j * image.width + i];
+                glm::vec3 avg = mipmap.pixels[last][i * mipmap.width[last] + j] + mipmap.pixels[last][i * mipmap.width[last] + j + 1] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j + 1];
+                avg *= (1.0f / 4.0f);
+                vec.push_back(avg);
+            }
+        }
+        mipmap.height.push_back(mipmap.height[last] / 2);
+        mipmap.width.push_back(mipmap.width[last] / 2);
+        mipmap.pixels.push_back(vec);
+        last++;
+    }
+    return mipmap;
+}
+
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
 {
     glm::vec3 position = ray.origin + ray.t * ray.direction;
@@ -22,6 +51,7 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     // EXPERIMENT
     if (hitInfo.material.kdTexture && features.enableTextureMapping) {
         glm::vec3 texel = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
+        //ImageMipMap mipmap = getMipMap(*hitInfo.material.kdTexture.get());
         if (features.extra.enableBilinearTextureFiltering) {
 
             texel = bilinearInterpolation(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
