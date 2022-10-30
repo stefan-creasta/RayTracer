@@ -18,7 +18,7 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
 // Transparency rendering function
 void renderRayTracingTransparency(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features);
 // Depth of Field Rendering function
-void renderRayTracingDepthOfField(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, float aperture = 0.1f, float focalLength = 2.0f, int samples = 10);
+void renderRayTracingDepthOfField(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, float aperture = 0.1f, float focalLength = 2.0f, int samples = 1000);
 
 
 

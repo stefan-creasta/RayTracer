@@ -78,7 +78,6 @@ Scene loadScenePrebuilt(SceneType type, const std::filesystem::path& dataDir)
         scene.lights.emplace_back(PointLight { glm::vec3(3, 0, 3), glm::vec3(15) });
     } break;
     case TransparencyDebug: {
-        std::cout << "NDIEBIDEID";
         auto subMeshes = loadMesh(dataDir / "cg3.obj");
         std::move(std::begin(subMeshes), std::end(subMeshes), std::back_inserter(scene.meshes));
         scene.lights.emplace_back(PointLight { glm::vec3(-1, 1, -1), glm::vec3(1) });

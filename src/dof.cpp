@@ -12,16 +12,6 @@ glm::vec3 getFocalPoint(Ray ray, float focalLength) {
 
 
 /*
-    Generate new random origin position.
-*/
-glm::vec3 generateNewOrigin(glm::vec3 origin, float aperture) {
-    float xshift = -aperture / 2 + static_cast<float>(rand()) / (RAND_MAX / aperture);
-    float yshift = -aperture / 2 + static_cast<float>(rand()) / (RAND_MAX / aperture);
-    float zshift = -aperture / 2 + static_cast<float>(rand()) / (RAND_MAX / aperture);
-    return origin + glm::vec3 {xshift, yshift, zshift}; 
-}
-
-/*
     Generate multiple samples of origin with some aperture.
 */
 std::vector<glm::vec3> generateSamples(glm::vec3 origin, float aperture, int samples, std::default_random_engine &rng, std::uniform_real_distribution<float> &dist) {
