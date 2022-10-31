@@ -6,9 +6,10 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
-#include <random>
 #include <iostream>
+#include <random>
 
+int sampleSize = 50;
 
 float getRandomVal()
 {
@@ -127,7 +128,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             } else if (std::holds_alternative<SegmentLight>(light)) {
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
                 // Perform your calculations for a segment light.
-                int sampleSize = 500;
                 glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
                 for (int i = 0; i < sampleSize; i++) {
                     glm::vec3 pos;
@@ -140,7 +140,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
                 // Perform your calculations for a parallelogram light.
                 if (features.enableSoftShadow) {
-                    int sampleSize = 500;
                     glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
                     for (int i = 0; i < sampleSize; i++) {
                         glm::vec3 pos;

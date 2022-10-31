@@ -3,7 +3,8 @@
 #include "light.h"
 #include "render.h"
 #include "screen.h"
-#include "shading.h"
+#include "dof.h"
+#include "transparency.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -114,6 +115,8 @@ int main(int argc, char** argv)
                     "Dragon",
                     /* "AABBs",*/ "Spheres", /*"Mixed",*/
                     "Custom",
+                    "TextureDebug",
+                    "TransparencyDebug"
                 };
                 if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                     optDebugRay.reset();
@@ -137,6 +140,9 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Recursive(reflections)", &config.features.enableRecursive);
                 ImGui::Checkbox("Hard shadows", &config.features.enableHardShadow);
                 ImGui::Checkbox("Soft shadows", &config.features.enableSoftShadow);
+                if (config.features.enableSoftShadow) {
+                    ImGui::SliderInt("Sample size", &sampleSize, 10, 100);
+                }
                 ImGui::Checkbox("BVH", &config.features.enableAccelStructure);
                 ImGui::Checkbox("Texture mapping", &config.features.enableTextureMapping);
                 ImGui::Checkbox("Normal interpolation", &config.features.enableNormalInterp);
@@ -150,6 +156,10 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
+                if (config.features.extra.enableGlossyReflection) {
+                    ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 150);
+                    ImGui::SliderFloat("Degrees of Blur", &degreeBlur, 0.005f, 0.1f);
+                }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
             }
@@ -325,7 +335,15 @@ int main(int argc, char** argv)
                     enableDebugDraw = true;
                     glDisable(GL_LIGHTING);
                     glDepthFunc(GL_LEQUAL);
-                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features, 1); // rayDepth to 1
+                    if (config.features.extra.enableDepthOfField) {
+                        debugDepthOfField(scene, bvh, *optDebugRay, config.features, 1);
+                    }
+                    else if (config.features.extra.enableTransparency) {
+                        (void)calculateColorTransparency(scene, *optDebugRay, bvh, config.features, 0);
+                    }
+                    else {
+                        (void) getFinalColor(scene, bvh, *optDebugRay, config.features, 1);
+                    }
                     enableDebugDraw = false;
                 }
                 glPopAttrib();
@@ -353,7 +371,15 @@ int main(int argc, char** argv)
             } break;
             case ViewMode::RayTracing: {
                 screen.clear(glm::vec3(0.0f));
-                renderRayTracing(scene, camera, bvh, screen, config.features);
+                if (config.features.extra.enableDepthOfField) {
+                    renderRayTracingDepthOfField(scene, camera, bvh, screen, config.features); // Ray-tracing with depth-of-field activated
+                }
+                else if (config.features.extra.enableTransparency) {
+                    renderRayTracingTransparency(scene, camera, bvh, screen, config.features); // Basic ray-tracing
+                }
+                else {
+                    renderRayTracing(scene, camera, bvh, screen, config.features);
+                }
                 screen.setPixel(0, 0, glm::vec3(1.0f));
                 screen.draw(); // Takes the image generated using ray tracing and outputs it to the screen using OpenGL.
             } break;

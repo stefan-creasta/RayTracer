@@ -56,6 +56,14 @@ static std::ostream& operator<<(std::ostream& os, const SceneType& sceneType)
         os << "SceneType::Custom";
         break;
     }
+    case SceneType::TextureDebug: {
+        os << "SceneType::TextureDebug";
+        break;
+    }
+    case SceneType::TransparencyDebug: {
+        os << "SceneType::TransparencyDebug";
+        break;
+    } 
     }
     return os;
 }
@@ -396,6 +404,10 @@ std::string serialize(const SceneType& sceneType)
         return "spheres";
     case SceneType::Custom:
         return "custom";
+    case SceneType::TextureDebug:
+        return "texture_debug";
+    case TransparencyDebug:
+        return "transparency_debug";
     default:
         return "unknown";
     }
@@ -403,6 +415,7 @@ std::string serialize(const SceneType& sceneType)
 
 std::optional<SceneType> deserialize(const std::string& sceneTypeStr)
 {
+    std::cout << sceneTypeStr << "\n";
     std::string lowered;
     std::transform(sceneTypeStr.begin(), sceneTypeStr.end(), std::back_inserter(lowered), ::tolower);
     if (lowered == "single_triangle" || lowered == "singletriangle" || lowered == "single-triangle") {
@@ -425,6 +438,10 @@ std::optional<SceneType> deserialize(const std::string& sceneTypeStr)
         return SceneType::Spheres;
     } else if (lowered == "custom") {
         return SceneType::Custom;
+    } else if (lowered == "texture_debug") {
+        return SceneType::TextureDebug;
+    } else if (lowered == "transparency_debug") {
+        return SceneType::TransparencyDebug;
     } else {
         return std::nullopt;
     }
