@@ -3,6 +3,7 @@
 #include "light.h"
 #include "render.h"
 #include "screen.h"
+#include "shading.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -550,4 +551,70 @@ bool sliderIntSquarePower(const char* label, int* v, int v_min, int v_max)
     const float v_rounded = std::round(std::sqrt(float(*v)));
     *v = static_cast<int>(v_rounded * v_rounded);
     return ImGui::SliderInt(label, v, v_min, v_max);
+}
+
+std::vector<Image> images;
+std::vector<ImageMipMap> mipmaps;
+
+int conversionToMipMap(const Image& image) {
+    int i;
+    for (i = 0; i < images.size(); i++) {
+        if (image.width == images[i].width) {
+            if (image.height == images[i].height) {
+                bool isFound = true;
+                for (int j = 0; isFound == true && j < image.pixels.size(); j++) {
+                    if (image.pixels[j] != images[i].pixels[j]) {
+                        isFound = false;
+                    }
+                }
+                if (isFound == true) {
+                    return i;
+                }
+            }
+        }
+    }
+    return i;
+}
+
+ImageMipMap transformToMipMap(const Image& image)
+{
+    ImageMipMap mipmap;
+    mipmap.height.push_back(image.height);
+    mipmap.width.push_back(image.width);
+    mipmap.pixels.push_back(image.pixels);
+    int last = 0;
+    while (1) {
+        if (mipmap.pixels[last].size() <= 1) {
+            break;
+        }
+        std::vector<glm::vec3> vec;
+        // std::cout << mipmap.height[last] << std::endl;
+        for (int i = 0; i < mipmap.height[last]; i += 2) {
+            for (int j = 0; j < mipmap.width[last]; j += 2) {
+                //image.pixels[j * image.width + i];
+                glm::vec3 avg = mipmap.pixels[last][i * mipmap.width[last] + j] + mipmap.pixels[last][i * mipmap.width[last] + j + 1] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j + 1];
+                avg *= (1.0f / 4.0f);
+                vec.push_back(avg);
+            }
+        }
+        mipmap.height.push_back(mipmap.height[last] / 2);
+        mipmap.width.push_back(mipmap.width[last] / 2);
+        mipmap.pixels.push_back(vec);
+        last++;
+    }
+    return mipmap;
+}
+
+ImageMipMap getMipMap(const Image& image)
+{
+    ImageMipMap mipmap;
+    int i = conversionToMipMap(image);
+    if (i == images.size()) {
+        mipmap = getMipMap(image);
+        images.push_back(image);
+        mipmaps.push_back(mipmap);
+    } else {
+        mipmap = mipmaps[i];
+    }
+    return mipmap;
 }

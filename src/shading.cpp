@@ -2,37 +2,8 @@
 #include "draw.h"
 #include <cmath>
 #include <glm/geometric.hpp>
-#include <shading.h>
+#include "shading.h"
 #include <iostream>
-
-ImageMipMap getMipMap(const Image& image)
-{
-    ImageMipMap mipmap;
-    mipmap.height.push_back(image.height);
-    mipmap.width.push_back(image.width);
-    mipmap.pixels.push_back(image.pixels);
-    int last = 0;
-    while (1) {
-        if (mipmap.pixels[last].size() <= 1) {
-            break;
-        }
-        std::vector<glm::vec3> vec;
-        //std::cout << mipmap.height[last] << std::endl;
-        for (int i = 0; i < mipmap.height[last]; i += 2) {
-            for (int j = 0; j < mipmap.width[last]; j += 2) {
-                image.pixels[j * image.width + i];
-                glm::vec3 avg = mipmap.pixels[last][i * mipmap.width[last] + j] + mipmap.pixels[last][i * mipmap.width[last] + j + 1] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j + 1];
-                avg *= (1.0f / 4.0f);
-                vec.push_back(avg);
-            }
-        }
-        mipmap.height.push_back(mipmap.height[last] / 2);
-        mipmap.width.push_back(mipmap.width[last] / 2);
-        mipmap.pixels.push_back(vec);
-        last++;
-    }
-    return mipmap;
-}
 
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
 {
@@ -85,3 +56,63 @@ const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
     //drawRay(Ray{point, hitInfo.normal, 1}, glm::vec3{0,1,0.5});
     return reflectionRay;
 }
+
+/** glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, const Features& features, const Ray& ray, const BvhInterface& bvh)
+{
+    // Get the mipmap first
+    ImageMipMap mipmap = getMipMap(image);
+    glm::vec3 point = ray.origin + ray.t * ray.direction;
+    Ray rayCopy = ray;
+    HitInfo hitInfo;
+    // Get the triangle which was hit, in order to calculate the texCoord and 3D coordinates for a corner
+    triangleMeshPair getT = bvh.getTriangleIntersection(rayCopy, hitInfo, features);
+    Mesh mesh = getT.mesh;
+    glm::uvec3 tri = getT.tri;
+    // If a sphere was hit first, we compute bilinear interpolation
+    if (tri == glm::uvec3(-1000000)) {
+        return bilinearInterpolation(image, texCoord, features);
+    }
+    auto v = mesh.vertices[tri[0]];
+    if (point == v.position) {
+        v = mesh.vertices[tri[1]];
+    }
+    // Computing the derivative
+    // First we calculate the 2D distance between the texture coordinates
+    glm::vec2 texCoord2 = v.texCoord;
+    float distanceTexX = texCoord.x - texCoord2.x;
+    float distanceTexY = texCoord.y - texCoord2.y;
+    // Then we approximate the screen space
+    Ray newRay = ray;
+    newRay.direction = glm::normalize(v.position - ray.origin) * glm::length(ray.direction);
+    newRay.t = ray.t;
+    glm::vec3 newPoint = newRay.t * newRay.direction + newRay.origin;
+    float distanceScreenX = point.x - newPoint.x;
+    float distanceScreenY = point.y - newPoint.y;
+    // The derivative is the distanceScreen / distanceTex
+    float derivativeX = 1.0, derivativeY = 1.0;
+    // If the distance for coordinates is zero, the derivative will converge to 1, so it stays 1
+    if (distanceTexX != 0.0f) {
+        derivativeX = distanceScreenX / distanceTexX;
+    }
+    // Same for y axis
+    if (distanceTexY != 0.0f) {
+        derivativeY = distanceScreenY / distanceTexY;
+    }
+    // Taking the maximum derivative
+    float maxDerivative = derivativeX;
+    if (maxDerivative < derivativeY) {
+        maxDerivative = derivativeY;
+    }
+    // Finding the log
+    float k = std::log2(maxDerivative);
+    float k0 = std::floor(k);
+    float k1 = k0 + 1;
+    float a = k1 - k;
+    // The level cannot be negative, so we approximate the trilinear interpolation to a bilinear interpolation for the first level in the mipmap (level 0)
+    if (k0 < 0) {
+        return bilinearInterpolation(image, texCoord, features);
+    }
+    glm::vec3 c0 = bilinearInterpolationForMipMap(mipmap, k0, texCoord, features);
+    glm::vec3 c1 = bilinearInterpolationForMipMap(mipmap, k1, texCoord, features);
+    return a * c0 + (1 - a) * c1;
+}**/
