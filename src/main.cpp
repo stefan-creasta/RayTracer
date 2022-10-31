@@ -140,6 +140,9 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Recursive(reflections)", &config.features.enableRecursive);
                 ImGui::Checkbox("Hard shadows", &config.features.enableHardShadow);
                 ImGui::Checkbox("Soft shadows", &config.features.enableSoftShadow);
+                if (config.features.enableSoftShadow) {
+                    ImGui::SliderInt("Sample size", &sampleSize, 10, 100);
+                }
                 ImGui::Checkbox("BVH", &config.features.enableAccelStructure);
                 ImGui::Checkbox("Texture mapping", &config.features.enableTextureMapping);
                 ImGui::Checkbox("Normal interpolation", &config.features.enableNormalInterp);
@@ -153,6 +156,10 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
+                if (config.features.extra.enableGlossyReflection) {
+                    ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 150);
+                    ImGui::SliderFloat("Degrees of Blur", &degreeBlur, 0.005f, 0.1f);
+                }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
             }

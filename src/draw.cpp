@@ -21,6 +21,7 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/mat4x4.hpp>
 DISABLE_WARNINGS_POP()
 #include <algorithm>
+#include <iostream>
 
 bool enableDebugDraw = false;
 
@@ -46,6 +47,7 @@ void drawExampleOfCustomVisualDebug()
 
 
 void drawTriangle (const Vertex& v0, const Vertex& v1, const Vertex& v2 ) {
+    //std::cout << "DESENARIGA" << std::endl;
     glBegin(GL_TRIANGLES);
         glNormal3fv(glm::value_ptr(v0.normal));
         glVertex3fv(glm::value_ptr(v0.position));
