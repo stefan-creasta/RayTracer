@@ -77,12 +77,23 @@ Scene loadScenePrebuilt(SceneType type, const std::filesystem::path& dataDir)
         scene.spheres.push_back(Sphere { glm::vec3(0.0f, 0.0f, 6.0f), 0.75f, Material { glm::vec3(0.2f, 0.2f, 0.8f) } });
         scene.lights.emplace_back(PointLight { glm::vec3(3, 0, 3), glm::vec3(15) });
     } break;
+    case TransparencyDebug: {
+        auto subMeshes = loadMesh(dataDir / "cg3.obj");
+        std::move(std::begin(subMeshes), std::end(subMeshes), std::back_inserter(scene.meshes));
+        scene.lights.emplace_back(PointLight { glm::vec3(-1, 1, -1), glm::vec3(1) });
+
+    } break;
+    case TextureDebug: {
+        // TODO: IMPLEMENT
+        
+    } break;
     case Custom: {
         // === Replace custom.obj by your own 3D model (or call your 3D model custom.obj) ===
-        auto subMeshes = loadMesh(dataDir / "custom.obj");
+        auto subMeshes = loadMesh(dataDir / "texture_debug.obj");
         std::move(std::begin(subMeshes), std::end(subMeshes), std::back_inserter(scene.meshes));
         // === CHANGE THE LIGHTING IF DESIRED ===
-        scene.lights.emplace_back(PointLight { glm::vec3(-1, 1, -1), glm::vec3(1) });
+        //scene.lights.emplace_back(PointLight { glm::vec3(-1, 1, -1), glm::vec3(1) });
+        scene.lights.emplace_back(PointLight {glm::vec3(2.514, 0.743, 1.955), glm::vec3(1)});
         // Spherical light: position, radius, color
         // scene.lights.push_back(SphericalLight{ glm::vec3(0, 1.5f, 0), 0.2f, glm::vec3(1) });
     } break;

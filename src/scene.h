@@ -23,6 +23,8 @@ enum SceneType {
     Dragon,
     Spheres,
     Custom,
+    TransparencyDebug,
+    TextureDebug
 };
 
 struct Scene {
