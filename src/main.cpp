@@ -31,6 +31,10 @@ DISABLE_WARNINGS_POP()
 #include <thread>
 #include <variant>
 
+#include <omp.h>
+
+
+//omp_lock_t writelock;
 // This is the main application. The code in here does not need to be modified.
 enum class ViewMode {
     Rasterization = 0,
@@ -46,6 +50,7 @@ bool sliderIntSquarePower(const char* label, int* v, int v_min, int v_max);
 
 int main(int argc, char** argv)
 {
+    //omp_init_lock(&writelock);
     Config config = {};
     if (argc > 1) {
         config = readConfigFile(argv[1]);
@@ -636,11 +641,17 @@ ImageMipMap getMipMap(const Image& image)
     ImageMipMap mipmap;
     int i = conversionToMipMap(image);
     if (i == images.size()) {
-        mipmap = getMipMap(image);
-        images.push_back(image);
-        mipmaps.push_back(mipmap);
+        //omp_set_lock(&writelock);
+#pragma omp critical
+        {
+
+            mipmap = transformToMipMap(image);
+            images.push_back(image);
+            mipmaps.push_back(mipmap);
+        }
+        //omp_unset_lock(&writelock);
     } else {
-        mipmap = mipmaps[i];
+        return mipmaps[i];
     }
     return mipmap;
 }

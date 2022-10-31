@@ -49,6 +49,7 @@ set_project_warnings(FinalProjectLib)
 
 if (USE_PREBUILT_INTERSECT)
 	add_library(Intersect2 STATIC IMPORTED)
+	set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION_RELWITHDEBINFO "${CMAKE_SOURCE_DIR}/prebuilt/Intersect_x64_release.lib")
 	if (WIN32)
 		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/prebuilt/Intersect_x64_debug.lib")
 		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/prebuilt/Intersect_x64_release.lib")
