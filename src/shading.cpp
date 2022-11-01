@@ -129,7 +129,7 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
     }
     // Computing the derivative
     // First we calculate the 2D distance between the texture coordinates
-    glm::vec2 texCoord2 = v.texCoord;
+    /** glm::vec2 texCoord2 = v.texCoord;
     float distanceTexX = fabs(texCoord.x - texCoord2.x);
     float distanceTexY = fabs(texCoord.y - texCoord2.y);
     // Then we approximate the screen space
@@ -142,23 +142,35 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
     // The derivative is the distanceScreen / distanceTex
     float derivativeX = 1.0, derivativeY = 1.0;
     // If the distance for coordinates is zero, the derivative will converge to 1, so it stays 1
-    if (distanceTexX != 0.0f) {
+    if (distanceScreenX != 0.0f) {
         derivativeX = distanceTexX / distanceScreenX;
     }
     // Same for y axis
-    if (distanceTexY != 0.0f) {
+    if (distanceScreenY != 0.0f) {
         derivativeY = distanceTexY / distanceScreenY;
     }
     // Taking the maximum derivative
     float maxDerivative = derivativeX;
-    if (maxDerivative < derivativeY) {
+    if (maxDerivative > derivativeY) {
         maxDerivative = derivativeY;
-    }
-    // Finding the log
-    float k = std::log2(maxDerivative);
+    }**/
+    float dist = glm::distance(point, ray.origin);
+    float angle = acos(glm::dot(-ray.direction, hitInfo.normal));
+        // Finding the log
+        // float k = std::log2(maxDerivative);
+    float k = dist * angle / 3.0f;
+    glm::vec3 w = glm::normalize(hitInfo.normal);
+    glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
+    glm::vec3 xVector = glm::normalize(glm::cross(t, w));
+    glm::vec3 yVector = glm::normalize(glm::cross(w, xVector));
+    Ray rayU = Ray { point, yVector, dist / 5.0f };
+    Ray rayV = Ray { point, xVector, angle / 5.0f };
+    drawRay(rayU, glm::vec3 { 1.0f, 0.5f, 0.0f });
+    drawRay(rayV, glm::vec3 { 1.0f, 0.0f, 0.5f });
     float k0 = std::floor(k);
     float k1 = k0 + 1;
     float a = k1 - k;
+    //std::cout << k0 << " " << k << " " << k1 << " Distance: " << dist << " Angle: " << angle << std::endl;
     // The level cannot be negative, so we approximate the trilinear interpolation to a bilinear interpolation for the first level in the mipmap (level 0)
     if (k0 < 0) {
         return bilinearInterpolation(image, texCoord, features);
@@ -166,7 +178,6 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
     if (k1 >= mipmap.height.size()) {
         return bilinearInterpolationForMipMap(mipmap, mipmap.height.size() - 1, texCoord, features);
     }
-    //std::cout << k0 << " " << k << " " << k1 << std::endl;
     glm::vec3 c0 = bilinearInterpolationForMipMap(mipmap, k0, texCoord, features);
     glm::vec3 c1 = bilinearInterpolationForMipMap(mipmap, k1, texCoord, features);
     return a * c0 + (1 - a) * c1;
