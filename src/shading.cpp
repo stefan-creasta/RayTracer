@@ -7,6 +7,8 @@
 #include <iostream>
 #include <glm/gtx/common.hpp>
 int numberOfRays = 5;
+bool showMipmapLevel = false;
+int mipmapLevel = 0;
 
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
 {
@@ -169,6 +171,13 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
     float k0 = std::floor(k);
     float k1 = k0 + 1;
     float a = k1 - k;
+    if (showMipmapLevel == true) {
+        int thisK = mipmapLevel;
+        if (thisK > mipmap.height.size() - 1) {
+            thisK = mipmap.height.size() - 1;
+        }
+        return bilinearInterpolationForMipMap(mipmap, thisK, texCoord, features);
+    }
     //std::cout << k0 << " " << k << " " << k1 << " Distance: " << dist << " Angle: " << angle << std::endl;
     // The level cannot be negative, so we approximate the trilinear interpolation to a bilinear interpolation for the first level in the mipmap (level 0)
     if (k0 < 0) {

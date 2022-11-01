@@ -160,6 +160,10 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
+                if (config.features.extra.enableMipmapTextureFiltering) {
+                    ImGui::Checkbox("Show Mipmap Level", &showMipmapLevel);
+                    ImGui::SliderInt("Mipmap Level", &mipmapLevel, 0, 20);
+                }
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 if (config.features.extra.enableGlossyReflection) {
                     ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 1500);

@@ -2,6 +2,8 @@
 #include "common.h"
 #include <framework/ray.h>
 extern int numberOfRays;
+extern bool showMipmapLevel;
+extern int mipmapLevel;
 
 struct ImageMipMap {
     std::vector<int> width;
