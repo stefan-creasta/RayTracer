@@ -6,7 +6,6 @@
 #include <random>
 #include <iostream>
 #include <glm/gtx/common.hpp>
-float degreeBlur = 0.01f;
 int numberOfRays = 5;
 
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
@@ -65,7 +64,7 @@ float getRandomVal2()
     return randomVal;
 }
 
-Ray returnGlossyRay(Ray reflection)
+Ray returnGlossyRay(Ray reflection, float degreeBlur)
 {
     glm::vec3 w = glm::normalize(reflection.direction);
     glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
@@ -75,10 +74,10 @@ Ray returnGlossyRay(Ray reflection)
     float va = -degreeBlur / 2.0f + degreeBlur * getRandomVal2();
     Ray rr = reflection;
     rr.direction += ua * u + va * v;
-    glm::vec3 p1 = reflection.origin + u * degreeBlur + v * degreeBlur;
-    glm::vec3 p2 = reflection.origin + u * degreeBlur - v * degreeBlur;
-    glm::vec3 p3 = reflection.origin - u * degreeBlur + v * degreeBlur;
-    glm::vec3 p4 = reflection.origin - u * degreeBlur - v * degreeBlur;
+    glm::vec3 p1 = reflection.origin + u * degreeBlur / 10.0f + v * degreeBlur / 10.0f;
+    glm::vec3 p2 = reflection.origin + u * degreeBlur / 10.0f - v * degreeBlur / 10.0f;
+    glm::vec3 p3 = reflection.origin - u * degreeBlur / 10.0f + v * degreeBlur / 10.0f;
+    glm::vec3 p4 = reflection.origin - u * degreeBlur / 10.0f - v * degreeBlur / 10.0f;
     Vertex v1 = Vertex(p1, reflection.direction);
     Vertex v2 = Vertex(p2, reflection.direction);
     Vertex v3 = Vertex(p3, reflection.direction);
@@ -96,11 +95,11 @@ const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
     return reflectionRay;
 }
 
-std::vector<Ray> glossyRays(Ray reflection)
+std::vector<Ray> glossyRays(Ray reflection, float degreeBlur)
 {
     std::vector<Ray> rays;
     for (int i = 1; i <= numberOfRays; i++) {
-        rays.push_back(returnGlossyRay(reflection));
+        rays.push_back(returnGlossyRay(reflection, degreeBlur));
     }
     return rays;
 }
