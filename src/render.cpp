@@ -4,6 +4,7 @@
 #include "screen.h"
 #include "transparency.h"
 #include "dof.h"
+#include "environment_mapping.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
 #include <omp.h>
@@ -45,9 +46,16 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         return Lo;
     } else {
         // Draw a red debug ray if the ray missed.
-        drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
-        // Set the color of the pixel to black if the ray misses.
-        return glm::vec3(0.0f);
+        
+        // Set the color of the pixel to the environment color (black if environment mapping is disabled) if the ray misses.
+        if (features.extra.enableEnvironmentMapping) {
+            glm::vec3 color = scene.environmentMap[0].getColor(ray, features);
+            //drawRay(ray, color);
+            return color;
+        } else {
+            //drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
+            return glm::vec3 { 0.f };
+        }
     }
 }
 
@@ -56,13 +64,13 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
-#ifdef NDEBUG
-#pragma omp parallel for schedule(guided)
-#endif
 
     float aperture = 0.1;
     std::default_random_engine rng;
     std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
+#ifdef NDEBUG
+#pragma omp parallel for schedule(guided)
+#endif
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
@@ -86,12 +94,12 @@ void renderRayTracingDepthOfField(const Scene& scene, const Trackball& camera, c
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
-    #ifdef NDEBUG
-    #pragma omp parallel for schedule(guided)
-    #endif
 
     std::default_random_engine rng;
     std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
+#ifdef NDEBUG
+#pragma omp parallel for schedule(guided)
+#endif
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.

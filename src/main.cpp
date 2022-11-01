@@ -4,6 +4,7 @@
 #include "render.h"
 #include "screen.h"
 #include "dof.h"
+#include "environment_mapping.h"
 #include "transparency.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
@@ -39,6 +40,17 @@ enum class ViewMode {
 
 int debugBVHLeafId = 0;
 
+void renderRayTracingRouter(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
+{
+    if (features.extra.enableDepthOfField) {
+        renderRayTracingDepthOfField(scene, camera, bvh, screen, features); // Ray-tracing with depth-of-field activated
+    } else if (features.extra.enableTransparency) {
+        renderRayTracingTransparency(scene, camera, bvh, screen, features); // Basic ray-tracing
+    } else {
+        renderRayTracing(scene, camera, bvh, screen, features);
+    }
+}
+
 static void setOpenGLMatrices(const Trackball& camera);
 static void drawLightsOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 static void drawSceneOpenGL(const Scene& scene);
@@ -67,6 +79,7 @@ int main(int argc, char** argv)
         SceneType sceneType { SceneType::SingleTriangle };
         std::optional<Ray> optDebugRay;
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
+        scene.environmentMap.push_back(EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }));
         BvhInterface bvh { &scene, config.features };
 
         int bvhDebugLevel = 0;
@@ -121,6 +134,7 @@ int main(int argc, char** argv)
                 if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                     optDebugRay.reset();
                     scene = loadScenePrebuilt(sceneType, config.dataPath);
+                    scene.environmentMap.push_back(EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }));
                     selectedLightIdx = scene.lights.empty() ? -1 : 0;
                     bvh = BvhInterface(&scene, config.features);
                     if (optDebugRay) {
@@ -191,7 +205,7 @@ int main(int argc, char** argv)
                     // Perform a new render and measure the time it took to generate the image.
                     using clock = std::chrono::high_resolution_clock;
                     const auto start = clock::now();
-                    renderRayTracing(scene, camera, bvh, screen, config.features);
+                    renderRayTracingRouter(scene, camera, bvh, screen, config.features);
                     const auto end = clock::now();
                     std::cout << "Time to render image: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
                     // Store the new image.
@@ -371,15 +385,7 @@ int main(int argc, char** argv)
             } break;
             case ViewMode::RayTracing: {
                 screen.clear(glm::vec3(0.0f));
-                if (config.features.extra.enableDepthOfField) {
-                    renderRayTracingDepthOfField(scene, camera, bvh, screen, config.features); // Ray-tracing with depth-of-field activated
-                }
-                else if (config.features.extra.enableTransparency) {
-                    renderRayTracingTransparency(scene, camera, bvh, screen, config.features); // Basic ray-tracing
-                }
-                else {
-                    renderRayTracing(scene, camera, bvh, screen, config.features);
-                }
+                renderRayTracingRouter(scene, camera, bvh, screen, config.features);
                 screen.setPixel(0, 0, glm::vec3(1.0f));
                 screen.draw(); // Takes the image generated using ray tracing and outputs it to the screen using OpenGL.
             } break;
@@ -413,7 +419,7 @@ int main(int argc, char** argv)
                            sceneName = serialize(type);
                        }),
             config.scene);
-
+        scene.environmentMap.push_back(EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }));
         BvhInterface bvh { &scene, config.features };
 
         using clock = std::chrono::high_resolution_clock;
@@ -432,7 +438,7 @@ int main(int argc, char** argv)
                 screen.clear(glm::vec3(0.0f));
                 Trackball camera { &window, glm::radians(cameraConfig.fieldOfView), cameraConfig.distanceFromLookAt };
                 camera.setCamera(cameraConfig.lookAt, glm::radians(cameraConfig.rotation), cameraConfig.distanceFromLookAt);
-                renderRayTracing(scene, camera, bvh, screen, config.features);
+                renderRayTracingRouter(scene, camera, bvh, screen, config.features);
                 const auto filename_base = fmt::format("{}_{}_cam_{}", sceneName, start_time_string, index);
                 const auto filepath = config.outputDir / (filename_base + ".bmp");
                 fmt::print("Image {} saved to {}\n", index, filepath.string());
