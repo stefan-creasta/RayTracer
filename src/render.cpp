@@ -56,13 +56,14 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
-#ifdef NDEBUG
-#pragma omp parallel for schedule(guided)
-#endif
+
 
     float aperture = 0.1;
     std::default_random_engine rng;
     std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
+#ifdef NDEBUG
+#pragma omp parallel for schedule(guided)
+#endif
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
@@ -86,12 +87,13 @@ void renderRayTracingDepthOfField(const Scene& scene, const Trackball& camera, c
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
-    #ifdef NDEBUG
-    #pragma omp parallel for schedule(guided)
-    #endif
+    
 
     std::default_random_engine rng;
     std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
+#ifdef NDEBUG
+    #pragma omp parallel for schedule(guided)
+    #endif
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.

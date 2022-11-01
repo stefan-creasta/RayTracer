@@ -23,6 +23,9 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
         return {0, 0, 0};
     }
     // EXPERIMENT
+    auto reflectRay = computeReflectionRay({lightPosition, lightDir}, hitInfo);
+    auto d = glm::abs(glm::dot(glm::normalize(reflectRay.direction), glm::normalize(ray.direction)));
+    auto specular = lightColor * hitInfo.material.ks * glm::pow(d, hitInfo.material.shininess);
     if (hitInfo.material.kdTexture && features.enableTextureMapping) {
         glm::vec3 texel = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
         //ImageMipMap mipmap = getMipMap(*hitInfo.material.kdTexture.get());
@@ -44,9 +47,9 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
             drawRay(rayOV, glm::vec3 { 1.0f, 0.0f, 0.5f });
             //std::cout << rayU.origin.x << std::endl;
         }
-        return lightColor * texel * dot;
+        return lightColor * texel * dot + specular;
     }
-    return lightColor * hitInfo.material.kd * dot;
+    return lightColor * hitInfo.material.kd * dot + specular;
 }
 
 float getRandomVal2()
