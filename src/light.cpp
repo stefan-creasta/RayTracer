@@ -3,6 +3,8 @@
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
+#include <glm/matrix.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
@@ -35,11 +37,69 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 {
     // first v0 to v1
     float alpha1 = getRandomVal();
-    glm::vec3 c1 = (1 - alpha1) * parallelogramLight.color0 + alpha1 * parallelogramLight.color1;
+    glm::vec3 c1 = (1 - alpha1) * parallelogramLight.color0 + alpha1 * parallelogramLight.color1;   
     glm::vec3 c2 = (1 - alpha1) * parallelogramLight.color2 + alpha1 * parallelogramLight.color3;
     float alpha2 = getRandomVal();
     color = (1 - alpha2) * c1 + alpha2 * c2;
     position = parallelogramLight.v0 + parallelogramLight.edge01 * alpha1 + parallelogramLight.edge02 * alpha2;
+}
+
+glm::mat3 lookAt(glm::vec3 direction, glm::vec3 up)
+{
+    const glm::vec3 zVector = direction;
+    const glm::vec3 yVector = up - zVector * glm::dot(zVector, up);
+    const glm::vec3 xVector = glm::cross(yVector, zVector);
+
+    return {
+        glm::normalize(xVector),
+        glm::normalize(yVector),
+        glm::normalize(zVector),
+    };
+}
+
+glm::vec3 sampleEnvironment(const EnvironmentMap& map, const BvhInterface& bvh, const Ray& ray, const HitInfo& hitInfo, const Features& features)
+{
+    //std::cout << "sampling" << std::endl;
+    glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
+    glm::vec3 origin = ray.origin + ray.t * ray.direction;
+    glm::mat3 mLookAt = glm::identity<glm::mat3>();
+    float upComponent = glm::dot(hitInfo.normal, glm::vec3 { 1.f, 1.f, 0.f });
+    if (upComponent == 0.f) {
+        if (hitInfo.normal.z > 0.f) {
+            mLookAt = glm::identity<glm::mat3>();
+        } else {
+            mLookAt = -1.f * mLookAt;
+        }
+    } else {
+        mLookAt = lookAt(hitInfo.normal, glm::vec3 { 0.f, 0.f, 1.0f });
+    }
+    if (glm::dot(ray.direction, hitInfo.normal) > 0.f) {
+        mLookAt *= -1.f;
+    }
+    int counter = 0;
+    for (int i = 0; i < sampleSize; i++) {
+        const float alphaArg = getRandomVal();
+        const float alphaMod = getRandomVal();
+        const float argument = 2.0 * alphaArg * 3.1415926535;
+        const float modulus = 5.0 * glm::tan(alphaMod);
+
+        glm::vec3 unrotated = glm::normalize(glm::vec3 { modulus * glm::cos(argument), modulus * glm::sin(argument), 1.f });
+        glm::vec3 rayDirection = mLookAt * unrotated;
+        const float esp = 0.0001f / glm::normalize(unrotated).z;
+        Ray sray { origin + rayDirection * esp, rayDirection };
+        HitInfo dummy;
+        if (!bvh.intersect(sray, dummy, features)) {
+            glm::vec3 pos = sray.origin + 100000.f * sray.direction;
+            glm::vec3 col = map.getColor(sray, features);
+            avgColor += computeShading(pos, col, features, ray, hitInfo);
+            //drawRay(sray, col);
+            counter++;
+        } else {
+            //drawRay(sray, glm::vec3 {1.f, 0.f, 0.f});
+        }
+        std::cout << i / (double)sampleSize << " rays hit the map." << std::endl;
+    }
+    return avgColor * float((1.0 / float(sampleSize)));
 }
 
 // test the visibility at a given light sample
@@ -151,6 +211,9 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 }
             }
         }
+        if (features.enableSoftShadow && features.extra.enableEnvironmentMapping)
+            med += sampleEnvironment(scene.environmentMap[0], bvh, ray, hitInfo, features);
+
         return med;
     }
     else
