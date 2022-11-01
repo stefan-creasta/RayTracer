@@ -162,7 +162,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 if (config.features.extra.enableGlossyReflection) {
-                    ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 500);
+                    ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 1500);
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
