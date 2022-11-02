@@ -39,6 +39,7 @@ enum class ViewMode {
 };
 
 int debugBVHLeafId = 0;
+int environmentMapId = 0;
 
 void renderRayTracingRouter(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
 {
@@ -79,7 +80,12 @@ int main(int argc, char** argv)
         SceneType sceneType { SceneType::SingleTriangle };
         std::optional<Ray> optDebugRay;
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
-        scene.environmentMap.push_back(EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }));
+        const std::vector<EnvironmentMap> environmentMaps
+        {
+            EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }),
+            EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_equirectangular.hdr", SPHERICAL, 180.f, { 0.5f, 0.5f, 0.5f }),
+        };
+        scene.environmentMap.push_back(environmentMaps[environmentMapId]);
         BvhInterface bvh { &scene, config.features };
 
         int bvhDebugLevel = 0;
@@ -134,7 +140,7 @@ int main(int argc, char** argv)
                 if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                     optDebugRay.reset();
                     scene = loadScenePrebuilt(sceneType, config.dataPath);
-                    scene.environmentMap.push_back(EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }));
+                    scene.environmentMap.push_back(environmentMaps[environmentMapId]);
                     selectedLightIdx = scene.lights.empty() ? -1 : 0;
                     bvh = BvhInterface(&scene, config.features);
                     if (optDebugRay) {
@@ -176,6 +182,15 @@ int main(int argc, char** argv)
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
+            }
+            ImGui::Separator();
+            constexpr std::array envMapItems {
+                "Park",
+                "Alpine Plateau"
+            };
+            if (ImGui::Combo("Environment Maps", reinterpret_cast<int*>(&environmentMapId), envMapItems.data(), int(envMapItems.size()))) {
+                scene.environmentMap.clear();
+                scene.environmentMap.push_back(environmentMaps[environmentMapId]);
             }
             ImGui::Separator();
 

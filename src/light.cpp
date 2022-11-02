@@ -62,7 +62,7 @@ glm::vec3 sampleEnvironment(const EnvironmentMap& map, const BvhInterface& bvh, 
     //std::cout << "sampling" << std::endl;
     glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
     glm::vec3 origin = ray.origin + ray.t * ray.direction;
-    glm::mat3 mLookAt = glm::identity<glm::mat3>();
+    /* glm::mat3 mLookAt = glm::identity<glm::mat3>();
     float upComponent = glm::dot(hitInfo.normal, glm::vec3 { 1.f, 1.f, 0.f });
     if (upComponent == 0.f) {
         if (hitInfo.normal.z > 0.f) {
@@ -75,10 +75,10 @@ glm::vec3 sampleEnvironment(const EnvironmentMap& map, const BvhInterface& bvh, 
     }
     if (glm::dot(ray.direction, hitInfo.normal) > 0.f) {
         mLookAt *= -1.f;
-    }
-    int counter = 0;
+    }*/
+    //int counter = 0;
     for (int i = 0; i < sampleSize; i++) {
-        const float alphaArg = getRandomVal();
+        /* const float alphaArg = getRandomVal();
         const float alphaMod = getRandomVal();
         const float argument = 2.0 * alphaArg * 3.1415926535;
         const float modulus = 5.0 * glm::tan(alphaMod);
@@ -86,19 +86,25 @@ glm::vec3 sampleEnvironment(const EnvironmentMap& map, const BvhInterface& bvh, 
         glm::vec3 unrotated = glm::normalize(glm::vec3 { modulus * glm::cos(argument), modulus * glm::sin(argument), 1.f });
         glm::vec3 rayDirection = mLookAt * unrotated;
         const float esp = 0.0001f / glm::normalize(unrotated).z;
-        Ray sray { origin + rayDirection * esp, rayDirection };
+        Ray sray { origin + rayDirection * esp, rayDirection };*/
+        HitInfo myHitInfo = hitInfo;
+        myHitInfo.normal = glm::dot(hitInfo.normal, ray.direction) < 0 ? hitInfo.normal : -hitInfo.normal;
+        Ray sray = map.getSamplingRay(origin, myHitInfo.normal);
+        
         HitInfo dummy;
-        if (!bvh.intersect(sray, dummy, features)) {
+        
+        if (!features.enableHardShadow || !bvh.intersect(sray, dummy, features)) {
             glm::vec3 pos = sray.origin + 100000.f * sray.direction;
             glm::vec3 col = map.getColor(sray, features);
-            avgColor += computeShading(pos, col, features, ray, hitInfo);
+            avgColor += computeShading(pos, col, features, ray, myHitInfo);
+            //std::cout << "Drawing" << std::endl;
             //drawRay(sray, col);
-            counter++;
+            //counter++;
         } else {
             //drawRay(sray, glm::vec3 {1.f, 0.f, 0.f});
         }
-        std::cout << i / (double)sampleSize << " rays hit the map." << std::endl;
     }
+    //std::cout << counter / (double)sampleSize << " rays hit the map." << std::endl;
     return avgColor * float((1.0 / float(sampleSize)));
 }
 
@@ -123,12 +129,12 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
     if (glm::dot(glm::normalize(samplePos - hit), glm::normalize(normal)) < -eps) {
 
         if ((features.enableHardShadow || features.enableSoftShadow))
-            drawRay(sray, glm::vec3{1, 0, 0});
+            //drawRay(sray, glm::vec3{1, 0, 0});
         return 0.0f;
     }
     if (glm::distance(hit, secondHit) > 1e-3) {
         if ((features.enableHardShadow || features.enableSoftShadow))
-            drawRay(sray, glm::vec3{1, 0, 0});
+            //drawRay(sray, glm::vec3{1, 0, 0});
         return 0.0f;
     }
 
