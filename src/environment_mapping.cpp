@@ -111,7 +111,7 @@ Ray EnvironmentMap::getSamplingRay(const glm::vec3& position, const glm::vec3& n
             const AxisAlignedRectangle& rect = radianceBins[randomBin];
             const glm::vec2 randomCoord = glm::vec2 { getRandomValForEnvironmentMapping(), getRandomValForEnvironmentMapping() } * (rect.upper - rect.lower);
             Ray ray = getRayForCoordinate(rect.lower + randomCoord);
-            const float eps = 0.0001f / glm::normalize(ray.direction).z;
+            const float eps = 0.0001f / glm::dot(glm::normalize(ray.direction), normal);
             ray.origin = position + eps * ray.direction;
             if (glm::dot(ray.direction, normal) > 0.f)
                 return ray;
