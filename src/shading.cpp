@@ -193,7 +193,7 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
 
 glm::vec3 bilinearInterpolationForMipMap(const ImageMipMap& image, int level, const glm::vec2& texCoord, const Features& features)
 {
-    glm::vec2 texelPos { (image.width[level] - 1) * texCoord[0], (image.height[level] - 1) * texCoord[1] };
+    glm::vec2 texelPos { (image.width[level] - 1) * texCoord[0], (image.height[level] - 1) * (1 - texCoord[1]) };
     texelPos.x = std::max(0.0f, std::min(float(image.width[level] - 1), texelPos.x));
     texelPos.y = std::max(0.0f, std::min(float(image.height[level] - 1), texelPos.y));
     glm::vec2 lowerPos { floor((image.width[level] - 1) * texCoord[0]), floor((image.height[level] - 1) * texCoord[1]) };
