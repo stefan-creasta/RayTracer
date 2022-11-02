@@ -49,7 +49,6 @@ EnvironmentMap::EnvironmentMap(Image& texture, EnvironmentMappingType mappingTyp
         totalRadiance += getRadiance(pixel);
     }
     buildRadianceHierarchy({}, totalRadiance);
-    std::cout << radianceBins.size() << " radiance bins created." << std::endl;
 }
 
 void EnvironmentMap::buildRadianceHierarchy(const AxisAlignedRectangle& aar, const float totalRadiance)
@@ -112,7 +111,6 @@ Ray EnvironmentMap::getSamplingRay(const glm::vec3& position, const glm::vec3& n
             const AxisAlignedRectangle& rect = radianceBins[randomBin];
             const glm::vec2 randomCoord = glm::vec2 { getRandomValForEnvironmentMapping(), getRandomValForEnvironmentMapping() } * (rect.upper - rect.lower);
             Ray ray = getRayForCoordinate(rect.lower + randomCoord);
-            //std::cout << ray.direction.x << ", " << ray.direction.y << ", " << ray.direction.z << std::endl;
             const float eps = 0.0001f / glm::normalize(ray.direction).z;
             ray.origin = position + eps * ray.direction;
             if (glm::dot(ray.direction, normal) > 0.f)
@@ -180,13 +178,11 @@ glm::vec3 EnvironmentMap::getColor(Ray ray, const Features& features) const
         default:
             y = 0.0;
         }
-        //const float cosy = glm::dot(glm::normalize(ray.direction), glm::vec3 { 0.f, 1.f, 0.f });
-        //const float unadjustedY = glm::acos(cosy) / PI;
-        //const float y = 0.5f * (this->verticalFOVFactor * cosy + 1.0);
-        //const float y = this->verticalFOVFactor * ()
+
         if (glm::abs(y - 0.5) > 0.5)
             return this->backgroundColor;
 
+        // Debug: Show the Radiance Bins
         /* for (const AxisAlignedRectangle& rectangle : radianceBins) { 
             const glm::vec2 middle = 0.5f * (rectangle.lower + rectangle.upper);
             const glm::vec2 aabSize = rectangle.upper - rectangle.lower;
