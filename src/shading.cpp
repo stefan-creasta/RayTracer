@@ -17,11 +17,6 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     if (dot < 0.0f) {
         return {0, 0, 0};
     }
-    glm::vec3 view = ray.origin - position;
-    glm::vec3 h = glm::normalize(lightDir + view);
-    if (glm::dot(h, glm::normalize(hitInfo.normal)) < 0.0f) {
-        return {0, 0, 0};
-    }
     // EXPERIMENT
     auto reflectRay = computeReflectionRay({lightPosition, lightDir}, hitInfo);
     auto d = glm::abs(glm::dot(glm::normalize(reflectRay.direction), glm::normalize(ray.direction)));
