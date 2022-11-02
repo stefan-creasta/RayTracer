@@ -4,6 +4,7 @@
 #include "render.h"
 #include "screen.h"
 #include "dof.h"
+#include "mrays.h"
 #include "transparency.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
@@ -156,6 +157,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
+                ImGui::Checkbox("Multiple rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
                 if (config.features.extra.enableGlossyReflection) {
                     ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 150);
                     ImGui::SliderFloat("Degrees of Blur", &degreeBlur, 0.005f, 0.1f);
@@ -341,6 +343,9 @@ int main(int argc, char** argv)
                     else if (config.features.extra.enableTransparency) {
                         (void)calculateColorTransparency(scene, *optDebugRay, bvh, config.features, 0);
                     }
+                    else if (config.features.extra.enableMultipleRaysPerPixel) {
+                        (void)calculateColorMultipleRaysPerPixel(scene, *optDebugRay, bvh, config.features, 0);
+                    }
                     else {
                         (void) getFinalColor(scene, bvh, *optDebugRay, config.features, 1);
                     }
@@ -376,6 +381,9 @@ int main(int argc, char** argv)
                 }
                 else if (config.features.extra.enableTransparency) {
                     renderRayTracingTransparency(scene, camera, bvh, screen, config.features); // Basic ray-tracing
+                }
+                else if (config.features.extra.enableMultipleRaysPerPixel) {
+                    renderRayTracingMRaysPerPixel(scene, camera, bvh, screen, config.features);
                 }
                 else {
                     renderRayTracing(scene, camera, bvh, screen, config.features);
