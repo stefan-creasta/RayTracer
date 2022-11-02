@@ -28,10 +28,16 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
                     rays = glossyRays(reflection, 1.0f / hitInfo.material.shininess);
                 }
                 color = { 0, 0, 0 };
+                int currentSize = 0;
                 for (int i = 0; i < rays.size(); i++) {
-                    color += getFinalColor(scene, bvh, rays[i], features, rayDepth - 1);
+                    float cosinus = glm::dot(glm::normalize(rays[i].direction), glm::normalize(hitInfo.normal));
+                    float sinus = sqrt(1.0f - cosinus * cosinus);
+                    if (cosinus > 0.0f && sinus > 0.0f) {
+                        color += getFinalColor(scene, bvh, rays[i], features, rayDepth - 1);
+                        currentSize++;
+                    }
                 }
-                color *= (1.0f / float(rays.size()));
+                color *= (1.0f / currentSize);
                 
             }
             else {
