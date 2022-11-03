@@ -46,6 +46,8 @@ void renderRayTracingRouter(const Scene& scene, const Trackball& camera, const B
 {
     if (features.extra.enableDepthOfField) {
         renderRayTracingDepthOfField(scene, camera, bvh, screen, features); // Ray-tracing with depth-of-field activated
+    } else if (features.extra.enableMotionBlur) {
+        renderRayTracingMotionBlur(scene, camera, bvh, screen, features);
     } else if (features.extra.enableTransparency) {
         renderRayTracingTransparency(scene, camera, bvh, screen, features); // Basic ray-tracing
     } else if (features.extra.enableMultipleRaysPerPixel) {
@@ -186,6 +188,7 @@ int main(int argc, char** argv)
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
+                ImGui::Checkbox("Motion blur", &config.features.extra.enableMotionBlur);
             }
             ImGui::Separator();
             constexpr std::array envMapItems {

@@ -23,6 +23,8 @@ void renderRayTracingDepthOfField(const Scene& scene, const Trackball& camera, c
 // Multiple Rays per pixel rendering function
 void renderRayTracingMRaysPerPixel(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int samples = 64);
 
+void renderRayTracingMotionBlur(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int steps = 7);
+
 // Get the color of a ray.
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth = 0);
 glm::vec3 getFinalColorTransparency(const Scene& scene, const BvhInterface& bvh, Ray &ray, const Features& features, int rayDepth = 0);
