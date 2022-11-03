@@ -16,8 +16,8 @@ struct HitInfo {
     glm::vec3 barycentricCoord;
     glm::vec2 texCoord;
     Material material;
-    glm::uvec3 triangle;
-    Mesh *mesh;
+    //glm::uvec3 triangle;
+    //Mesh *mesh;
 };
 
 struct Plane {

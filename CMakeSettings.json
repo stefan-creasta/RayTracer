@@ -13,7 +13,7 @@
       "variables": [
         {
           "name": "USE_PREBUILT_INTERSECT",
-          "value": "False",
+          "value": "True",
           "type": "BOOL"
         }
       ]

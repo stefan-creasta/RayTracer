@@ -118,16 +118,16 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
     glm::vec3 point = ray.origin + ray.t * ray.direction;
     Ray rayCopy = ray;
     // Get the triangle which was hit, in order to calculate the texCoord and 3D coordinates for a corner
-    Mesh& mesh = *hitInfo.mesh;
-    glm::uvec3 tri = hitInfo.triangle;
+    //Mesh& mesh = *hitInfo.mesh;
+    //glm::uvec3 tri = hitInfo.triangle;
     // If a sphere was hit first, we compute bilinear interpolation
-    if (tri == glm::uvec3(-1000000)) {
-        return bilinearInterpolation(image, texCoord, features);
-    }
-    auto v = mesh.vertices[tri[0]];
-    if (point == v.position) {
-        v = mesh.vertices[tri[1]];
-    }
+    //if (tri == glm::uvec3(-1000000)) {
+        //return bilinearInterpolation(image, texCoord, features);
+    //}
+    //auto v = mesh.vertices[tri[0]];
+    //if (point == v.position) {
+       // v = mesh.vertices[tri[1]];
+    //}
     // Computing the derivative
     // First we calculate the 2D distance between the texture coordinates
     /** glm::vec2 texCoord2 = v.texCoord;

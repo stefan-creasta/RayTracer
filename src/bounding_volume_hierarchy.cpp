@@ -265,8 +265,8 @@ void BoundingVolumeHierarchy::triangleIntersectUpdate(const glm::uvec3& tri, Hit
         hitInfo.normal = v0.normal;
     }
     hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
-    hitInfo.mesh = &mesh;
-    hitInfo.triangle = tri;
+    //hitInfo.mesh = &mesh;
+    //hitInfo.triangle = tri;
 }
 
 bool isInAABB(AxisAlignedBox a, glm::vec3 x)
