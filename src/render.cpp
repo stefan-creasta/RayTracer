@@ -56,13 +56,10 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
+
 #ifdef NDEBUG
 #pragma omp parallel for schedule(guided)
 #endif
-
-    float aperture = 0.1;
-    std::default_random_engine rng;
-    std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
@@ -86,12 +83,13 @@ void renderRayTracingDepthOfField(const Scene& scene, const Trackball& camera, c
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
-    #ifdef NDEBUG
-    #pragma omp parallel for schedule(guided)
-    #endif
+    
 
     std::default_random_engine rng;
     std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
+#ifdef NDEBUG
+    #pragma omp parallel for schedule(guided)
+    #endif
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
@@ -133,6 +131,35 @@ void renderRayTracingTransparency(const Scene& scene, const Trackball& camera, c
             col = calculateColorTransparency(scene, cameraRay, bvh, features, 1);
             screen.setPixel(x, y, col);
             
+        }
+    }
+}
+
+void renderRayTracingMRaysPerPixel(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int samples) {
+    glm::ivec2 windowResolution = screen.resolution();
+    // Enable multi threading in Release mode
+    
+
+    std::default_random_engine rng;
+    std::uniform_real_distribution<float> dist(0, 1);
+#ifdef NDEBUG
+    #pragma omp parallel for schedule(guided)
+    #endif
+    for (int y = 0; y < windowResolution.y; y++) {
+        for (int x = 0; x != windowResolution.x; x++) {
+            // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
+            
+            glm::vec3 fcolor(0.0f);
+            for (int i = 0; i < samples; i++) {
+                const glm::vec2 normalizedPixelPos {
+                    float(x + dist(rng)) / float(windowResolution.x) * 2.0f - 1.0f,
+                    float(y + dist(rng)) / float(windowResolution.y) * 2.0f - 1.0f
+                };
+                Ray cameraRay = camera.generateRay(normalizedPixelPos);
+                fcolor += getFinalColor(scene, bvh, cameraRay, features, 0);
+            }
+            fcolor *= glm::vec3(1.0f/(samples*1.0f));
+            screen.setPixel(x, y, fcolor);
         }
     }
 }

@@ -17,12 +17,10 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     if (dot < 0.0f) {
         return {0, 0, 0};
     }
-    glm::vec3 view = ray.origin - position;
-    glm::vec3 h = glm::normalize(lightDir + view);
-    if (glm::dot(h, glm::normalize(hitInfo.normal)) < 0.0f) {
-        return {0, 0, 0};
-    }
     // EXPERIMENT
+    auto reflectRay = computeReflectionRay({lightPosition, lightDir}, hitInfo);
+    auto d = glm::abs(glm::dot(glm::normalize(reflectRay.direction), glm::normalize(ray.direction)));
+    auto specular = lightColor * hitInfo.material.ks * glm::pow(d, hitInfo.material.shininess);
     if (hitInfo.material.kdTexture && features.enableTextureMapping) {
         glm::vec3 texel = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
         //ImageMipMap mipmap = getMipMap(*hitInfo.material.kdTexture.get());
@@ -44,9 +42,9 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
             drawRay(rayOV, glm::vec3 { 1.0f, 0.0f, 0.5f });
             //std::cout << rayU.origin.x << std::endl;
         }
-        return lightColor * texel * dot;
+        return lightColor * texel * dot + specular;
     }
-    return lightColor * hitInfo.material.kd * dot;
+    return lightColor * hitInfo.material.kd * dot + specular;
 }
 
 float getRandomVal2()
@@ -74,10 +72,10 @@ Ray returnGlossyRay(Ray reflection)
     glm::vec3 p2 = reflection.origin + u * degreeBlur - v * degreeBlur;
     glm::vec3 p3 = reflection.origin - u * degreeBlur + v * degreeBlur;
     glm::vec3 p4 = reflection.origin - u * degreeBlur - v * degreeBlur;
-    Vertex v1 = Vertex(p1, reflection.direction);
-    Vertex v2 = Vertex(p2, reflection.direction);
-    Vertex v3 = Vertex(p3, reflection.direction);
-    Vertex v4 = Vertex(p4, reflection.direction);
+    Vertex v1 = Vertex({p1, reflection.direction});
+    Vertex v2 = Vertex({p2, reflection.direction});
+    Vertex v3 = Vertex({p3, reflection.direction});
+    Vertex v4 = Vertex({p4, reflection.direction});
     drawTriangle(v1, v2, v3);
     drawTriangle(v2, v3, v4);
     return rr;

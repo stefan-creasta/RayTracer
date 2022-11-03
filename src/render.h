@@ -20,8 +20,8 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
 void renderRayTracingTransparency(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features);
 // Depth of Field Rendering function
 void renderRayTracingDepthOfField(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, float aperture = 0.1f, float focalLength = 2.0f, int samples = 100);
-
-
+// Multiple Rays per pixel rendering function
+void renderRayTracingMRaysPerPixel(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int samples = 64);
 
 // Get the color of a ray.
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth = 0);

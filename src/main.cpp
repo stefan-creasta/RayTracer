@@ -4,6 +4,7 @@
 #include "render.h"
 #include "screen.h"
 #include "dof.h"
+#include "mrays.h"
 #include "transparency.h"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
@@ -156,6 +157,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
+                ImGui::Checkbox("Multiple rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
                 if (config.features.extra.enableGlossyReflection) {
                     ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 150);
                     ImGui::SliderFloat("Degrees of Blur", &degreeBlur, 0.005f, 0.1f);
@@ -341,6 +343,9 @@ int main(int argc, char** argv)
                     else if (config.features.extra.enableTransparency) {
                         (void)calculateColorTransparency(scene, *optDebugRay, bvh, config.features, 0);
                     }
+                    else if (config.features.extra.enableMultipleRaysPerPixel) {
+                        (void)calculateColorMultipleRaysPerPixel(scene, *optDebugRay, bvh, config.features, 0);
+                    }
                     else {
                         (void) getFinalColor(scene, bvh, *optDebugRay, config.features, 1);
                     }
@@ -376,6 +381,9 @@ int main(int argc, char** argv)
                 }
                 else if (config.features.extra.enableTransparency) {
                     renderRayTracingTransparency(scene, camera, bvh, screen, config.features); // Basic ray-tracing
+                }
+                else if (config.features.extra.enableMultipleRaysPerPixel) {
+                    renderRayTracingMRaysPerPixel(scene, camera, bvh, screen, config.features);
                 }
                 else {
                     renderRayTracing(scene, camera, bvh, screen, config.features);
@@ -582,13 +590,13 @@ bool sliderIntSquarePower(const char* label, int* v, int v_min, int v_max)
 std::vector<Image> images;
 std::vector<ImageMipMap> mipmaps;
 
-int conversionToMipMap(const Image& image) {
-    int i;
+size_t conversionToMipMap(const Image& image) {
+    size_t i;
     for (i = 0; i < images.size(); i++) {
         if (image.width == images[i].width) {
             if (image.height == images[i].height) {
                 bool isFound = true;
-                for (int j = 0; isFound == true && j < image.pixels.size(); j++) {
+                for (size_t j = 0; isFound == true && j < image.pixels.size(); j++) {
                     if (image.pixels[j] != images[i].pixels[j]) {
                         isFound = false;
                     }
@@ -608,17 +616,18 @@ ImageMipMap transformToMipMap(const Image& image)
     mipmap.height.push_back(image.height);
     mipmap.width.push_back(image.width);
     mipmap.pixels.push_back(image.pixels);
-    int last = 0;
+    size_t last = 0;
     while (1) {
         if (mipmap.pixels[last].size() <= 1) {
             break;
         }
         std::vector<glm::vec3> vec;
         // std::cout << mipmap.height[last] << std::endl;
-        for (int i = 0; i < mipmap.height[last]; i += 2) {
-            for (int j = 0; j < mipmap.width[last]; j += 2) {
+        for (size_t i = 0; i < static_cast<size_t>(mipmap.height[last]); i += 2) {
+            for (size_t j = 0; j < static_cast<size_t>(mipmap.width[last]); j += 2) {
                 //image.pixels[j * image.width + i];
-                glm::vec3 avg = mipmap.pixels[last][i * mipmap.width[last] + j] + mipmap.pixels[last][i * mipmap.width[last] + j + 1] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j + 1];
+                size_t temp = static_cast<size_t>(mipmap.width[last]);
+                glm::vec3 avg = mipmap.pixels[last][i * temp + j] + mipmap.pixels[last][i * temp + j + 1] + mipmap.pixels[last][(i + 1) * temp + j] + mipmap.pixels[last][(i + 1) * temp + j + 1];
                 avg *= (1.0f / 4.0f);
                 vec.push_back(avg);
             }
@@ -634,7 +643,7 @@ ImageMipMap transformToMipMap(const Image& image)
 ImageMipMap getMipMap(const Image& image)
 {
     ImageMipMap mipmap;
-    int i = conversionToMipMap(image);
+    size_t i = conversionToMipMap(image);
     if (i == images.size()) {
         mipmap = getMipMap(image);
         images.push_back(image);
