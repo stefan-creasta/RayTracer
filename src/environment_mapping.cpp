@@ -174,10 +174,10 @@ glm::vec3 EnvironmentMap::getColor(Ray ray, const Features& features) const
         x = glm::atan(ray.direction.z, ray.direction.x) / (2 * PI) + 0.5;
         switch (this->mappingType) {
         case SPHERICAL:
-            y = (PI / this->verticalFOVFactor) * (glm::acos(glm::dot(glm::normalize(ray.direction), glm::vec3 { 0.f, 1.f, 0.f })) / PI - 0.5) + 0.5;
+            y = -(PI / this->verticalFOVFactor) * (glm::acos(glm::dot(glm::normalize(ray.direction), glm::vec3 { 0.f, 1.f, 0.f })) / PI - 0.5) + 0.5;
             break;
         case CYLINDRICAL:
-            y = -0.5 / glm::tan(0.5f * this->verticalFOVFactor) / glm::tan(glm::acos(glm::dot(glm::normalize(ray.direction), glm::vec3 { 0.f, 1.f, 0.f }))) + 0.5;
+            y = 0.5 / glm::tan(0.5f * this->verticalFOVFactor) / glm::tan(glm::acos(glm::dot(glm::normalize(ray.direction), glm::vec3 { 0.f, 1.f, 0.f }))) + 0.5;
             break;
         case SPHEROCYLINDRICAL:
             y = -0.5 * PI / this->verticalFOVFactor * glm::dot(glm::normalize(ray.direction), glm::vec3 { 0.f, 1.f, 0.f }) + 0.5;
