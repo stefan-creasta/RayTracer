@@ -66,28 +66,39 @@ Trackball transformCamera(const Trackball& camera, glm::vec3 deltaPosition, glm:
 glm::vec3 mbdebug_startLookAt;
 glm::vec3 mbdebug_startAngles;
 float mbdebug_startDistance;
-bool mbdebug_rendered;
+
+glm::vec3 mbdebug_endLookAt;
+glm::vec3 mbdebug_endAngles;
+float mbdebug_endDistance;
+
 glm::vec2 mbdebug_rayPosition;
+bool mbdebug_rendered = false;
+int mbdebug_skippedFrames = 1000;
 
 void debugMotionBlur(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int steps = 7) { 
+    if (++mbdebug_skippedFrames > 20) {
+        mbdebug_skippedFrames = 0;
+
+        mbdebug_startLookAt = mbdebug_endLookAt;
+        mbdebug_startAngles = mbdebug_endAngles;
+        mbdebug_startDistance = mbdebug_endDistance;
+
+        mbdebug_endLookAt = camera.lookAt();
+        mbdebug_endAngles = camera.rotationEulerAngles();
+        mbdebug_endDistance = camera.distanceFromLookAt();
+
+        if (!mbdebug_rendered) {
+            mbdebug_rendered = true;
+            return;
+        }
+    }
+
     std::default_random_engine rng;
     std::uniform_real_distribution<float> rand(0.f, 1.f);
 
-    if (!mbdebug_rendered) {
-        mbdebug_startLookAt = camera.lookAt();
-        mbdebug_startAngles = camera.rotationEulerAngles();
-        mbdebug_startDistance = camera.distanceFromLookAt();
-        mbdebug_rendered = true;
-        return;
-    }
-
-    glm::vec3 endLookAt = camera.lookAt();
-    glm::vec3 endAngles = camera.rotationEulerAngles();
-    float endDistance = camera.distanceFromLookAt();
-
-    glm::vec3 scaleLookAt = endLookAt - mbdebug_startLookAt;
-    glm::vec3 scaleAngles = endAngles - mbdebug_startAngles;
-    float scaleDistance = endDistance - mbdebug_startDistance;
+    glm::vec3 scaleLookAt = mbdebug_endLookAt - mbdebug_startLookAt;
+    glm::vec3 scaleAngles = mbdebug_endAngles - mbdebug_startAngles;
+    float scaleDistance = mbdebug_endDistance - mbdebug_startDistance;
 
     for (int i = 0; i < steps; i++) {
         float jitter = rand(rng);
@@ -103,10 +114,6 @@ void debugMotionBlur(const Scene& scene, const Trackball& camera, const BvhInter
 
         (void) getFinalColor(scene, bvh, cameraRay, features, 1);
     }
-
-    mbdebug_startLookAt = camera.lookAt();
-    mbdebug_startAngles = camera.rotationEulerAngles();
-    mbdebug_startDistance = camera.distanceFromLookAt();
 }
 
 static void setOpenGLMatrices(const Trackball& camera);
