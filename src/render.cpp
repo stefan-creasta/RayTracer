@@ -183,11 +183,8 @@ bool rendered;
 void renderRayTracingMotionBlur(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int steps)
 {
     glm::ivec2 windowResolution = screen.resolution();
-    // Enable multi threading in Release mode
-
-    float aperture = 0.1;
     std::default_random_engine rng;
-    std::uniform_real_distribution<float> dist(-aperture / 2, aperture / 2);
+    std::uniform_real_distribution<float> rand(0.f, 1.f);
 
     if (!rendered) { 
         renderRayTracing(scene, camera, bvh, screen, features);
@@ -206,36 +203,32 @@ void renderRayTracingMotionBlur(const Scene& scene, const Trackball& camera, con
     glm::vec3 scaleAngles = endAngles - startAngles;
     float scaleDistance = endDistance - startDistance;
 
-    std::vector<Trackball> trackballs;
-
-    for (int i = 0; i < steps; i++) { 
-        glm::vec3 lerpLookAt = startLookAt + (i / (steps - 1.f)) * scaleLookAt;
-        glm::vec3 lerpAngles = startAngles + (i / (steps - 1.f)) * scaleAngles;
-        float lerpDistance = startDistance + (i / (steps - 1.f)) * scaleDistance;
-
-        Trackball camera2 = camera;
-        camera2.setCamera(lerpLookAt, lerpAngles, lerpDistance);
-
-        trackballs.push_back(camera2);
-    }
-
     startLookAt = camera.lookAt();
     startAngles = camera.rotationEulerAngles();
     startDistance = camera.distanceFromLookAt();
-
+    // Enable multi threading in Release mode
 #ifdef NDEBUG
 #pragma omp parallel for schedule(guided)
 #endif
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             glm::vec3 col {0.f};
-            for (const Trackball& camera : trackballs) {
+            for (int i = 0; i < steps; i++) {
+                float jitter = rand(rng);
+                float lerpFactor = jitter + i;
+                glm::vec3 lerpLookAt = startLookAt + (lerpFactor / (steps)) * scaleLookAt;
+                glm::vec3 lerpAngles = startAngles + (lerpFactor / (steps)) * scaleAngles;
+                float lerpDistance = startDistance + (lerpFactor / (steps)) * scaleDistance;
+
+                Trackball camera2 = camera;
+                camera2.setCamera(lerpLookAt, lerpAngles, lerpDistance);
+
                 // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
                 const glm::vec2 normalizedPixelPos {
                     float(x) / float(windowResolution.x) * 2.0f - 1.0f,
                     float(y) / float(windowResolution.y) * 2.0f - 1.0f
                 };
-                Ray cameraRay = camera.generateRay(normalizedPixelPos);
+                Ray cameraRay = camera2.generateRay(normalizedPixelPos);
                 /*
                     Extra Feature: Transparency
                 */
