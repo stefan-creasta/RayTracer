@@ -3,6 +3,8 @@
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
+#include <glm/matrix.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
@@ -40,6 +42,27 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
     float alpha2 = getRandomVal();
     color = (1 - alpha2) * c1 + alpha2 * c2;
     position = parallelogramLight.v0 + parallelogramLight.edge01 * alpha1 + parallelogramLight.edge02 * alpha2;
+}
+
+glm::vec3 sampleEnvironment(const EnvironmentMap& map, const BvhInterface& bvh, const Ray& ray, const HitInfo& hitInfo, const Features& features)
+{
+    glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
+    glm::vec3 origin = ray.origin + ray.t * ray.direction;
+    HitInfo myHitInfo = hitInfo;
+    HitInfo dummy;
+    myHitInfo.normal = glm::dot(hitInfo.normal, ray.direction) < 0 ? hitInfo.normal : -hitInfo.normal;
+    std::vector<Ray> srays = map.getSamplingRay(origin, myHitInfo.normal, sampleSize);
+    for (Ray& sray : srays) {
+        if (!features.enableHardShadow || !bvh.intersect(sray, dummy, features)) {
+            glm::vec3 pos = sray.origin + 100000.f * sray.direction;
+            glm::vec3 col = map.getColor(sray, features);
+            avgColor += computeShading(pos, col, features, ray, myHitInfo);
+            //drawRay(sray, col);
+        } else {
+            //drawRay(sray, glm::vec3 {1.f, 0.f, 0.f});
+        }
+    }
+    return avgColor * float((1.0 / float(sampleSize)));
 }
 
 // test the visibility at a given light sample
@@ -153,6 +176,9 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 }
             }
         }
+        if (features.enableSoftShadow && features.extra.enableEnvironmentMapping)
+            med += sampleEnvironment(*scene.environmentMap[0], bvh, ray, hitInfo, features);
+
         return med;
     }
     else

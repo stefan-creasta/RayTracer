@@ -115,8 +115,11 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
     }
 
     size_t median = useSAH ? getSAHBestSplit(indices, meshTrianglePairs, direction) : getMedian(indices, meshTrianglePairs, direction);
-    const std::span<size_t> leftIndices = std::span<size_t>(indices.begin(), indices.begin() + median);
-    const std::span<size_t> rightIndices = std::span<size_t>(indices.begin() + median, indices.end());
+    
+    const std::span<size_t> leftIndices = indices.subspan(0, median);
+    const std::span<size_t> rightIndices = indices.subspan(median, indices.size() - median);
+    //const std::span<size_t> leftIndices = std::span<size_t>(indices.begin(), indices.begin() + median);
+    //const std::span<size_t> rightIndices = std::span<size_t>(indices.begin() + median, indices.end());
 
     size_t left = bvhSplitHelper(pScene, nodes, leftIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth, useSAH);
     size_t right = bvhSplitHelper(pScene, nodes, rightIndices, meshTrianglePairs, (direction + 1) % 3, currentDepth + 1, maxDepth, useSAH);

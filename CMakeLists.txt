@@ -30,6 +30,9 @@ add_library(FinalProjectLib
 	"src/render.cpp"
 	"src/transparency.cpp" # EXTRA FEATURE: TRANSPARENCY
 	"src/dof.cpp" # EXTRA FEATURE : DEPTH OF FIELD
+	"src/environment_mapping.cpp" # EXTRA FEATURE: ENVIRONMENT MAPPING
+    "src/sampling.cpp"
+	"src/mrays.cpp" # EXTRA FEATURE : MULTIPLE RAYS PER PIXEL WITH IRREGULAR SAMPLING
 )
 
 if (REFERENCE_MODE)

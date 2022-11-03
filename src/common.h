@@ -30,6 +30,11 @@ struct AxisAlignedBox {
     glm::vec3 upper { 1.0f };
 };
 
+struct AxisAlignedRectangle {
+    glm::vec2 lower;
+    glm::vec2 upper { 1.0f };
+};
+
 struct Sphere {
     glm::vec3 center { 0.0f };
     float radius = 1.0f;
