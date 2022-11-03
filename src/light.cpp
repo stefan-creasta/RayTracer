@@ -175,7 +175,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             }
         }
         if (features.enableSoftShadow && features.extra.enableEnvironmentMapping)
-            med += sampleEnvironment(scene.environmentMap[0], bvh, ray, hitInfo, features);
+            med += sampleEnvironment(*scene.environmentMap[0], bvh, ray, hitInfo, features);
 
         return med;
     }

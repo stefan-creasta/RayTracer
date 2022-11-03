@@ -88,7 +88,7 @@ int main(int argc, char** argv)
             EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }),
             EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_equirectangular.hdr", SPHERICAL, 180.f, { 0.5f, 0.5f, 0.5f }),
         };
-        scene.environmentMap.push_back(environmentMaps[environmentMapId]);
+        scene.environmentMap.push_back(&environmentMaps[environmentMapId]);
         BvhInterface bvh { &scene, config.features };
 
         int bvhDebugLevel = 0;
@@ -143,7 +143,7 @@ int main(int argc, char** argv)
                 if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                     optDebugRay.reset();
                     scene = loadScenePrebuilt(sceneType, config.dataPath);
-                    scene.environmentMap.push_back(environmentMaps[environmentMapId]);
+                    scene.environmentMap.push_back(&environmentMaps[environmentMapId]);
                     selectedLightIdx = scene.lights.empty() ? -1 : 0;
                     bvh = BvhInterface(&scene, config.features);
                     if (optDebugRay) {
@@ -194,7 +194,7 @@ int main(int argc, char** argv)
             };
             if (ImGui::Combo("Environment Maps", reinterpret_cast<int*>(&environmentMapId), envMapItems.data(), int(envMapItems.size()))) {
                 scene.environmentMap.clear();
-                scene.environmentMap.push_back(environmentMaps[environmentMapId]);
+                scene.environmentMap.push_back(&environmentMaps[environmentMapId]);
             }
             ImGui::Separator();
 
@@ -441,7 +441,8 @@ int main(int argc, char** argv)
                            sceneName = serialize(type);
                        }),
             config.scene);
-        scene.environmentMap.push_back(EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }));
+        const EnvironmentMap cliMap = EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f });
+        scene.environmentMap.push_back(&cliMap);
         BvhInterface bvh { &scene, config.features };
 
         using clock = std::chrono::high_resolution_clock;

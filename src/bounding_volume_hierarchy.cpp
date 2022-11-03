@@ -368,7 +368,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             if (front.isLeaf == true) {
                 for (size_t currentChild : front.children) {
                     MeshTrianglePair pair = meshTrianglePairs[currentChild];
-                    Mesh mesh = *pair.mesh;
+                    Mesh& mesh = *pair.mesh;
                     glm::uvec3 tri = mesh.triangles[pair.triangle];
                     const auto v0 = mesh.vertices[tri[0]];
                     const auto v1 = mesh.vertices[tri[1]];
@@ -412,7 +412,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         }
         if (hitTri) {
             MeshTrianglePair pair = meshTrianglePairs[minTri];
-            Mesh mesh = *pair.mesh;
+            Mesh& mesh = *pair.mesh;
             glm::uvec3 tri = mesh.triangles[pair.triangle];
             const auto v0 = mesh.vertices[tri[0]];
             const auto v1 = mesh.vertices[tri[1]];
