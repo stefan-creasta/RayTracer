@@ -61,13 +61,11 @@ glm::vec3 sampleEnvironment(const EnvironmentMap& map, const BvhInterface& bvh, 
 {
     glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
     glm::vec3 origin = ray.origin + ray.t * ray.direction;
-    for (int i = 0; i < sampleSize; i++) {
-        HitInfo myHitInfo = hitInfo;
-        myHitInfo.normal = glm::dot(hitInfo.normal, ray.direction) < 0 ? hitInfo.normal : -hitInfo.normal;
-        Ray sray = map.getSamplingRay(origin, myHitInfo.normal);
-        
-        HitInfo dummy;
-        
+    HitInfo myHitInfo = hitInfo;
+    HitInfo dummy;
+    myHitInfo.normal = glm::dot(hitInfo.normal, ray.direction) < 0 ? hitInfo.normal : -hitInfo.normal;
+    std::vector<Ray> srays = map.getSamplingRay(origin, myHitInfo.normal, sampleSize);
+    for (Ray& sray : srays) {
         if (!features.enableHardShadow || !bvh.intersect(sray, dummy, features)) {
             glm::vec3 pos = sray.origin + 100000.f * sray.direction;
             glm::vec3 col = map.getColor(sray, features);

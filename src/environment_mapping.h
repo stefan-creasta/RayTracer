@@ -13,11 +13,6 @@ enum EnvironmentMappingType {
     CUBE
 };
 
-struct AxisAlignedRectangle {
-    glm::vec2 lower;
-    glm::vec2 upper = {1.f, 1.f};
-};
-
 class EnvironmentMap {
 public:
     static EnvironmentMap loadEnvironmentMap(const std::filesystem::path& file, EnvironmentMappingType mappingType, float verticalFieldOfView, glm::vec3 backgroundColor = glm::vec3 {});
@@ -25,7 +20,7 @@ public:
     EnvironmentMap(Image& image, EnvironmentMappingType mappingType, float verticalFieldOfView = 180.f, glm::vec3 backgroundColor = glm::vec3 {});
 
     void buildRadianceHierarchy(const AxisAlignedRectangle& aar, const float totalRadiance);
-    Ray getSamplingRay(const glm::vec3& position, const glm::vec3& normal) const;
+    std::vector<Ray> getSamplingRay(const glm::vec3& position, const glm::vec3& normal, int n) const;
     Ray getRayForCoordinate(const glm::vec2& coordinates) const;
     glm::vec3 getColor(Ray ray, const Features& features) const;
 

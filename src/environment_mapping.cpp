@@ -10,6 +10,7 @@ DISABLE_WARNINGS_POP()
 #include "texture.h"
 #include <iostream>
 #include <random>
+#include "sampling.h"
 
 #define PI 3.14159265358979323846
 
@@ -103,21 +104,27 @@ void EnvironmentMap::buildRadianceHierarchy(const AxisAlignedRectangle& aar, con
         radianceBins.push_back(aarUpper);
 }
 
-Ray EnvironmentMap::getSamplingRay(const glm::vec3& position, const glm::vec3& normal) const
+std::vector<Ray> EnvironmentMap::getSamplingRay(const glm::vec3& position, const glm::vec3& normal, int n) const
 {
     if (texture) {
-        for (int i = 0; i < 100; i++) {
+        int nPerTry = glm::max(glm::sqrt(n / 10.), 1.);
+        std::vector<Ray> returned;
+        returned.reserve(n);
+        for (int i = 0; returned.size() < n && i < 100; i++) {
             const int randomBin = std::floor(getRandomValForEnvironmentMapping() * radianceBins.size());
             const AxisAlignedRectangle& rect = radianceBins[randomBin];
-            const glm::vec2 randomCoord = glm::vec2 { getRandomValForEnvironmentMapping(), getRandomValForEnvironmentMapping() } * (rect.upper - rect.lower);
-            Ray ray = getRayForCoordinate(rect.lower + randomCoord);
-            const float eps = 0.0001f / glm::dot(glm::normalize(ray.direction), normal);
-            ray.origin = position + eps * ray.direction;
-            if (glm::dot(ray.direction, normal) > 0.f)
-                return ray;
+            std::vector<glm::vec2> samples = sample2D(rect, nPerTry, nPerTry);
+            for (glm::vec2& sample : samples) { 
+                Ray ray = getRayForCoordinate(sample);
+                const float eps = 0.0001f / glm::dot(glm::normalize(ray.direction), normal);
+                ray.origin = position + eps * ray.direction;
+                if (glm::dot(ray.direction, normal) > 0.f)
+                    returned.push_back(ray);
+            }
         }
+        return returned;
     }
-    return Ray { position, normal };
+    return { Ray { position, normal } };
 }
 
 Ray EnvironmentMap::getRayForCoordinate(const glm::vec2& coordinates) const { 
@@ -126,30 +133,30 @@ Ray EnvironmentMap::getRayForCoordinate(const glm::vec2& coordinates) const {
     glm::vec3 pitched, yawed;
     switch (mappingType) {
     case SPHERICAL:
-        pitch = (coordinates.y - 1) * verticalFOVFactor;
+        pitch = (0.5 - coordinates.y) * verticalFOVFactor;
         pitched = {
-            -glm::cos(pitch),
+            glm::cos(pitch),
+            glm::sin(pitch),
             0.f,
-            -glm::sin(pitch)
         };
         yawed = {
             pitched.x * glm::cos(azimuth),
+            pitched.y,
             pitched.x * glm::sin(azimuth),
-            pitched.z
         };
         return Ray { {}, yawed };
         break;
     case CYLINDRICAL:
         pitch = glm::atan(glm::tan(0.5f * this->verticalFOVFactor) * (0.5 - coordinates.y) / 0.5);
         pitched = {
-            -glm::cos(pitch),
+            glm::cos(pitch),
+            glm::sin(pitch),
             0.f,
-            -glm::sin(pitch)
         };
         yawed = {
             pitched.x * glm::cos(azimuth),
+            pitched.y,
             pitched.x * glm::sin(azimuth),
-            pitched.z
         };
         return Ray { {}, yawed };
         break;

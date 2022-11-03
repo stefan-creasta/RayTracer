@@ -31,7 +31,7 @@ add_library(FinalProjectLib
 	"src/transparency.cpp" # EXTRA FEATURE: TRANSPARENCY
 	"src/dof.cpp" # EXTRA FEATURE : DEPTH OF FIELD
 	"src/environment_mapping.cpp" # EXTRA FEATURE: ENVIRONMENT MAPPING
-)
+ "src/sampling.cpp" "src/sampling.h")
 
 if (REFERENCE_MODE)
 	target_sources(FinalProjectLib PRIVATE
