@@ -151,14 +151,16 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             } else if (std::holds_alternative<SegmentLight>(light)) {
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
                 // Perform your calculations for a segment light.
-                glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
-                for (int i = 0; i < sampleSize; i++) {
-                    glm::vec3 pos;
-                    glm::vec3 col;
-                    sampleSegmentLight(segmentLight, pos, col);
-                    avgColor += computeShading(pos, col, features, ray, hitInfo) * testVisibilityLightSample(pos, col, bvh, features, ray, hitInfo);
+                if (features.enableSoftShadow) {
+                    glm::vec3 avgColor = { 0.0f, 0.0f, 0.0f };
+                    for (int i = 0; i < sampleSize; i++) {
+                        glm::vec3 pos;
+                        glm::vec3 col;
+                        sampleSegmentLight(segmentLight, pos, col);
+                        avgColor += computeShading(pos, col, features, ray, hitInfo) * testVisibilityLightSample(pos, col, bvh, features, ray, hitInfo);
+                    }
+                    med += avgColor * float((1.0 / float(sampleSize)));
                 }
-                med += avgColor * float((1.0 / float(sampleSize)));
             } else if (std::holds_alternative<ParallelogramLight>(light)) {
                 const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
                 // Perform your calculations for a parallelogram light.

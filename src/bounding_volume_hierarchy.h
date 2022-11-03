@@ -42,7 +42,7 @@ public:
     void debugDrawLeaf(int leafIdx);
 
     // update parameters when ray hits a triangle
-    void triangleIntersectUpdate(const glm::uvec3& tri,  HitInfo& hitInfo, const Ray& ray, const Mesh& mesh, const Features& features) const;
+    void triangleIntersectUpdate(const glm::uvec3& tri, HitInfo& hitInfo, const Ray& ray, Mesh& mesh, const Features& features) const;
 
     // Return true if something is hit, returns false otherwise.
     // Only find hits if they are closer than t stored in the ray and the intersection

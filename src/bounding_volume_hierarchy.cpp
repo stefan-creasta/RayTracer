@@ -252,7 +252,7 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
 }
 
-void BoundingVolumeHierarchy::triangleIntersectUpdate(const glm::uvec3& tri, HitInfo& hitInfo, const Ray& ray, const Mesh& mesh, const Features& features) const
+void BoundingVolumeHierarchy::triangleIntersectUpdate(const glm::uvec3& tri, HitInfo& hitInfo, const Ray& ray, Mesh& mesh, const Features& features) const
 {
 
     const auto v0 = mesh.vertices[tri[0]];
@@ -268,6 +268,8 @@ void BoundingVolumeHierarchy::triangleIntersectUpdate(const glm::uvec3& tri, Hit
         hitInfo.normal = v0.normal;
     }
     hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+    //hitInfo.mesh = &mesh;
+    //hitInfo.triangle = tri;
 }
 
 bool isInAABB(AxisAlignedBox a, glm::vec3 x)
@@ -303,7 +305,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
     if (!features.enableAccelStructure) {
         // Intersect with all triangles of all meshes.
         Vertex last0, last1, last2;
-        for (const auto& mesh : m_pScene->meshes) {
+        for (auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
                 const auto v0 = mesh.vertices[tri[0]];
                 const auto v1 = mesh.vertices[tri[1]];

@@ -22,17 +22,23 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         if (features.enableRecursive) { 
             std::vector<Ray> rays;
             Ray reflection = computeReflectionRay(ray, hitInfo);
-            if (!features.extra.enableGlossyReflection) {
-                rays.push_back(reflection);
-            } else {
-                rays = glossyRays(reflection);
-            }
             if (rayDepth > 0 && hitInfo.material.ks != glm::vec3 {0.0, 0.0, 0.0}) {
-                color = { 0, 0, 0 };
-                for (int i = 0; i < rays.size(); i++) {
-                    color += getFinalColor(scene, bvh, rays[i], features, rayDepth - 1);
+                if (!features.extra.enableGlossyReflection) {
+                    rays.push_back(reflection);
+                } else {
+                    rays = glossyRays(reflection, 1.0f / hitInfo.material.shininess);
                 }
-                color *= (1.0f / float(rays.size()));
+                color = { 0, 0, 0 };
+                int currentSize = 0;
+                for (int i = 0; i < rays.size(); i++) {
+                    float cosinus = glm::dot(glm::normalize(rays[i].direction), glm::normalize(hitInfo.normal));
+                    float sinus = sqrt(1.0f - cosinus * cosinus);
+                    if (cosinus > 0.0f && sinus > 0.0f) {
+                        color += getFinalColor(scene, bvh, rays[i], features, rayDepth - 1);
+                        currentSize++;
+                    }
+                }
+                color *= (1.0f / currentSize);
                 
             }
             else {

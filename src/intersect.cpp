@@ -10,6 +10,7 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <limits>
 
+constexpr float maxFloat = std::numeric_limits<float>::infinity();
 
 bool pointInTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& n, const glm::vec3& p) {
     glm::vec3 bary = computeBarycentricCoord(v0, v1, v2, p);
@@ -109,7 +110,7 @@ bool intersectRayWithShape(const Sphere& sphere, Ray& ray, HitInfo& hitInfo)
 /// Output: if intersects then modify the hit parameter ray.t and return true, otherwise return false
 bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
 {
-    float first = 0.0f, second = std::numeric_limits<float>();
+    float first = 0.0f, second = maxFloat;
     for (int i = 0; i < 3; i++) {
         float inverseDirection = 1.0f / ray.direction[i];
         float t0 = (box.lower[i] - ray.origin[i]) * inverseDirection;

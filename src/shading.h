@@ -1,8 +1,9 @@
 #pragma once
 #include "common.h"
 #include <framework/ray.h>
-extern float degreeBlur;
 extern int numberOfRays;
+extern bool showMipmapLevel;
+extern int mipmapLevel;
 
 struct ImageMipMap {
     std::vector<int> width;
@@ -18,4 +19,10 @@ const Ray computeReflectionRay (Ray ray, HitInfo hitInfo);
 
 ImageMipMap getMipMap(const Image& image);
 // Given a ray and a normal (in hitInfo), compute many reflected rays to compute glossy effect.
-std::vector<Ray> glossyRays(Ray reflection);
+std::vector<Ray> glossyRays(Ray reflection, float degreeBlur);
+
+Ray returnGlossyRay(Ray reflection, float degreeBlur);
+
+glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, const Features& features, const Ray& ray, HitInfo hitInfo);
+
+glm::vec3 bilinearInterpolationForMipMap(const ImageMipMap& image, int level, const glm::vec2& texCoord, const Features& features);

@@ -33,6 +33,10 @@ DISABLE_WARNINGS_POP()
 #include <thread>
 #include <variant>
 
+#include <omp.h>
+
+
+//omp_lock_t writelock;
 // This is the main application. The code in here does not need to be modified.
 enum class ViewMode {
     Rasterization = 0,
@@ -62,6 +66,7 @@ bool sliderIntSquarePower(const char* label, int* v, int v_min, int v_max);
 
 int main(int argc, char** argv)
 {
+    //omp_init_lock(&writelock);
     Config config = {};
     if (argc > 1) {
         config = readConfigFile(argv[1]);
@@ -178,11 +183,14 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
+                if (config.features.extra.enableMipmapTextureFiltering) {
+                    ImGui::Checkbox("Show Mipmap Level", &showMipmapLevel);
+                    ImGui::SliderInt("Mipmap Level", &mipmapLevel, 0, 20);
+                }
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 ImGui::Checkbox("Multiple rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
                 if (config.features.extra.enableGlossyReflection) {
-                    ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 150);
-                    ImGui::SliderFloat("Degrees of Blur", &degreeBlur, 0.005f, 0.1f);
+                    ImGui::SliderInt("Number of Rays", &numberOfRays, 1, 1500);
                 }
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
@@ -666,11 +674,17 @@ ImageMipMap getMipMap(const Image& image)
     ImageMipMap mipmap;
     size_t i = conversionToMipMap(image);
     if (i == images.size()) {
-        mipmap = getMipMap(image);
-        images.push_back(image);
-        mipmaps.push_back(mipmap);
+        //omp_set_lock(&writelock);
+#pragma omp critical
+        {
+
+            mipmap = transformToMipMap(image);
+            images.push_back(image);
+            mipmaps.push_back(mipmap);
+        }
+        //omp_unset_lock(&writelock);
     } else {
-        mipmap = mipmaps[i];
+        return mipmaps[i];
     }
     return mipmap;
 }
