@@ -622,10 +622,8 @@ ImageMipMap transformToMipMap(const Image& image)
             break;
         }
         std::vector<glm::vec3> vec;
-        // std::cout << mipmap.height[last] << std::endl;
         for (int i = 0; i < mipmap.height[last]; i += 2) {
             for (int j = 0; j < mipmap.width[last]; j += 2) {
-                //image.pixels[j * image.width + i];
                 glm::vec3 avg = mipmap.pixels[last][i * mipmap.width[last] + j] + mipmap.pixels[last][i * mipmap.width[last] + j + 1] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j] + mipmap.pixels[last][(i + 1) * mipmap.width[last] + j + 1];
                 avg *= (1.0f / 4.0f);
                 vec.push_back(avg);

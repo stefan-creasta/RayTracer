@@ -108,57 +108,10 @@ std::vector<Ray> glossyRays(Ray reflection, float degreeBlur)
 
 glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, const Features& features, const Ray& ray, HitInfo hitInfo)
 {
-    // Get the mipmap first
-    
     ImageMipMap mipmap = getMipMap(image);
-    
-    /** for (int i = 0; i < mipmap.height.size(); i++) {
-        std::cout << "width: " << mipmap.width[i] << " height: " << mipmap.height[i] << " size: " << mipmap.pixels[i].size() << std::endl;
-    }**/
     glm::vec3 point = ray.origin + ray.t * ray.direction;
-    Ray rayCopy = ray;
-    // Get the triangle which was hit, in order to calculate the texCoord and 3D coordinates for a corner
-    //Mesh& mesh = *hitInfo.mesh;
-    //glm::uvec3 tri = hitInfo.triangle;
-    // If a sphere was hit first, we compute bilinear interpolation
-    //if (tri == glm::uvec3(-1000000)) {
-      //  return bilinearInterpolation(image, texCoord, features);
-    //}
-    //auto v = mesh.vertices[tri[0]];
-    //if (point == v.position) {
-      //  v = mesh.vertices[tri[1]];
-    //}
-    // Computing the derivative
-    // First we calculate the 2D distance between the texture coordinates
-    /** glm::vec2 texCoord2 = v.texCoord;
-    float distanceTexX = fabs(texCoord.x - texCoord2.x);
-    float distanceTexY = fabs(texCoord.y - texCoord2.y);
-    // Then we approximate the screen space
-    Ray newRay = ray;
-    newRay.direction = glm::normalize(v.position - ray.origin) * glm::length(ray.direction);
-    newRay.t = ray.t;
-    glm::vec3 newPoint = newRay.t * newRay.direction + newRay.origin;
-    float distanceScreenX = fabs(point.x - newPoint.x);
-    float distanceScreenY = fabs(point.y - newPoint.y);
-    // The derivative is the distanceScreen / distanceTex
-    float derivativeX = 1.0, derivativeY = 1.0;
-    // If the distance for coordinates is zero, the derivative will converge to 1, so it stays 1
-    if (distanceScreenX != 0.0f) {
-        derivativeX = distanceTexX / distanceScreenX;
-    }
-    // Same for y axis
-    if (distanceScreenY != 0.0f) {
-        derivativeY = distanceTexY / distanceScreenY;
-    }
-    // Taking the maximum derivative
-    float maxDerivative = derivativeX;
-    if (maxDerivative > derivativeY) {
-        maxDerivative = derivativeY;
-    }**/
     float dist = glm::distance(point, ray.origin);
     float angle = acos(glm::dot(-ray.direction, hitInfo.normal));
-        // Finding the log
-        // float k = std::log2(maxDerivative);
     float k = dist * angle / 3.0f;
     glm::vec3 w = glm::normalize(hitInfo.normal);
     glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
@@ -178,8 +131,6 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
         }
         return bilinearInterpolationForMipMap(mipmap, thisK, texCoord, features);
     }
-    //std::cout << k0 << " " << k << " " << k1 << " Distance: " << dist << " Angle: " << angle << std::endl;
-    // The level cannot be negative, so we approximate the trilinear interpolation to a bilinear interpolation for the first level in the mipmap (level 0)
     if (k0 < 0) {
         return bilinearInterpolation(image, texCoord, features);
     }
@@ -194,18 +145,17 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
 glm::vec3 bilinearInterpolationForMipMap(const ImageMipMap& image, int level, const glm::vec2& texCoord, const Features& features)
 {
     glm::vec2 texelPos { (image.width[level] - 1) * texCoord[0], (image.height[level] - 1) * (1 - texCoord[1]) };
-    texelPos.x = std::max(0.0f, std::min(float(image.width[level] - 1), texelPos.x));
-    texelPos.y = std::max(0.0f, std::min(float(image.height[level] - 1), texelPos.y));
+    //texelPos.x = std::max(0.0f, std::min(float(image.width[level] - 1), texelPos.x));
+    //texelPos.y = std::max(0.0f, std::min(float(image.height[level] - 1), texelPos.y));
     glm::vec2 lowerPos { floor((image.width[level] - 1) * texCoord[0]), floor((image.height[level] - 1) * (1 - texCoord[1])) };
     glm::vec2 upperPos { lowerPos.x + 1, lowerPos.y + 1 };
     float u = texelPos.x - lowerPos.x;
     float v = texelPos.y - lowerPos.y;
-    //std::cout << texelPos.x << " " << texelPos.y << std::endl;
     lowerPos = glm::mod(lowerPos, glm::vec2 { image.width[level], image.height[level] });
     upperPos = glm::mod(upperPos, glm::vec2 { image.width[level], image.height[level] });
-    glm::vec3 upperLeft = image.pixels[level][lowerPos.y * image.width[level] + lowerPos.x];
-    glm::vec3 lowerRight = image.pixels[level][upperPos.y * image.width[level] + upperPos.x];
-    glm::vec3 upperRight = image.pixels[level][upperPos.y * image.width[level] + lowerPos.x];
-    glm::vec3 lowerLeft = image.pixels[level][lowerPos.y * image.width[level] + upperPos.x];
-    return upperLeft * (1.0f - u) * (1.0f - v) + lowerRight * u * v + upperRight * (1.0f - u) * v + lowerLeft * u * (1.0f - v);
+    glm::vec3 lowerLeft = image.pixels[level][lowerPos.y * image.width[level] + lowerPos.x];
+    glm::vec3 upperRight = image.pixels[level][upperPos.y * image.width[level] + upperPos.x];
+    glm::vec3 lowerRight = image.pixels[level][upperPos.y * image.width[level] + lowerPos.x];
+    glm::vec3 upperLeft = image.pixels[level][lowerPos.y * image.width[level] + upperPos.x];
+    return lowerLeft * (1.0f - u) * (1.0f - v) + upperRight * u * v + lowerRight * (1.0f - u) * v + upperLeft * u * (1.0f - v);
 }
