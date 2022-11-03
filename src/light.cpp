@@ -37,24 +37,11 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 {
     // first v0 to v1
     float alpha1 = getRandomVal();
-    glm::vec3 c1 = (1 - alpha1) * parallelogramLight.color0 + alpha1 * parallelogramLight.color1;   
+    glm::vec3 c1 = (1 - alpha1) * parallelogramLight.color0 + alpha1 * parallelogramLight.color1;
     glm::vec3 c2 = (1 - alpha1) * parallelogramLight.color2 + alpha1 * parallelogramLight.color3;
     float alpha2 = getRandomVal();
     color = (1 - alpha2) * c1 + alpha2 * c2;
     position = parallelogramLight.v0 + parallelogramLight.edge01 * alpha1 + parallelogramLight.edge02 * alpha2;
-}
-
-glm::mat3 lookAt(glm::vec3 direction, glm::vec3 up)
-{
-    const glm::vec3 zVector = direction;
-    const glm::vec3 yVector = up - zVector * glm::dot(zVector, up);
-    const glm::vec3 xVector = glm::cross(yVector, zVector);
-
-    return {
-        glm::normalize(xVector),
-        glm::normalize(yVector),
-        glm::normalize(zVector),
-    };
 }
 
 glm::vec3 sampleEnvironment(const EnvironmentMap& map, const BvhInterface& bvh, const Ray& ray, const HitInfo& hitInfo, const Features& features)
@@ -99,12 +86,12 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
     if (glm::dot(glm::normalize(samplePos - hit), glm::normalize(normal)) < -eps) {
 
         if ((features.enableHardShadow || features.enableSoftShadow))
-            //drawRay(sray, glm::vec3{1, 0, 0});
+            drawRay(sray, glm::vec3{1, 0, 0});
         return 0.0f;
     }
     if (glm::distance(hit, secondHit) > 1e-3) {
         if ((features.enableHardShadow || features.enableSoftShadow))
-            //drawRay(sray, glm::vec3{1, 0, 0});
+            drawRay(sray, glm::vec3{1, 0, 0});
         return 0.0f;
     }
 
