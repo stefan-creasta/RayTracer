@@ -8,9 +8,7 @@ DISABLE_WARNINGS_POP()
 
 enum EnvironmentMappingType {
     CYLINDRICAL,
-    SPHERICAL,
-    SPHEROCYLINDRICAL,
-    CUBE
+    SPHERICAL
 };
 
 class EnvironmentMap {

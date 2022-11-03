@@ -160,8 +160,6 @@ Ray EnvironmentMap::getRayForCoordinate(const glm::vec2& coordinates) const {
         };
         return Ray { {}, yawed };
         break;
-    default:
-        break;
     }
     return Ray { {}, { 1.f, 0.f, 0.f } };
 }
@@ -179,11 +177,6 @@ glm::vec3 EnvironmentMap::getColor(Ray ray, const Features& features) const
         case CYLINDRICAL:
             y = 0.5 / glm::tan(0.5f * this->verticalFOVFactor) / glm::tan(glm::acos(glm::dot(glm::normalize(ray.direction), glm::vec3 { 0.f, 1.f, 0.f }))) + 0.5;
             break;
-        case SPHEROCYLINDRICAL:
-            y = -0.5 * PI / this->verticalFOVFactor * glm::dot(glm::normalize(ray.direction), glm::vec3 { 0.f, 1.f, 0.f }) + 0.5;
-            break;
-        default:
-            y = 0.0;
         }
 
         if (glm::abs(y - 0.5) > 0.5)
