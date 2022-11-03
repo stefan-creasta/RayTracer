@@ -19,7 +19,7 @@ glm::vec3 bilinearInterpolation(const Image& image, const glm::vec2& texCoord, c
     glm::vec2 texelPos { (image.width - 1) * texCoord[0], (image.height - 1) * (1 - texCoord[1])};
     texelPos.x = std::max(0.0f, std::min(float(image.width - 1), texelPos.x));
     texelPos.y = std::max(0.0f, std::min(float(image.height - 1), texelPos.y));
-    glm::vec2 lowerPos { floor((image.width - 1) * texCoord[0]), floor((image.height - 1) * texCoord[1]) };
+    glm::vec2 lowerPos { floor((image.width - 1) * texCoord[0]), floor((image.height - 1) * (1 - texCoord[1])) };
     glm::vec2 upperPos { lowerPos.x + 1, lowerPos.y + 1 };
     float u = texelPos.x - lowerPos.x;
     float v = texelPos.y - lowerPos.y;
@@ -33,10 +33,10 @@ glm::vec3 bilinearInterpolation(const Image& image, const glm::vec2& texCoord, c
 }
 
 glm::vec2 getUVForBilinear(const Image& image, const glm::vec2& texCoord, const Features& features) {
-    glm::vec2 texelPos { (image.width - 1) * texCoord[0], (image.height - 1) * texCoord[1] };
+    glm::vec2 texelPos { (image.width - 1) * texCoord[0], (image.height - 1) * (1 - texCoord[1]) };
     texelPos.x = std::max(0.0f, std::min(float(image.width - 1), texelPos.x));
     texelPos.y = std::max(0.0f, std::min(float(image.height - 1), texelPos.y));
-    glm::vec2 lowerPos { floor((image.width - 1) * texCoord[0]), floor((image.height - 1) * texCoord[1]) };
+    glm::vec2 lowerPos { floor((image.width - 1) * texCoord[0]), floor((image.height - 1) * (1 - texCoord[1])) };
     glm::vec2 upperPos { lowerPos.x + 1, lowerPos.y + 1 };
     float u = texelPos.x - lowerPos.x;
     float v = texelPos.y - lowerPos.y;

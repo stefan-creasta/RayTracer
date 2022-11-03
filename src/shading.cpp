@@ -40,9 +40,9 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
                 glm::vec3 u = glm::normalize(glm::cross(t, w));
                 glm::vec3 v = glm::normalize(glm::cross(w, u));
                 Ray rayU = Ray { position, -v, debugUV.x / 5.0f };
-                Ray rayV = Ray { position, u, debugUV.y / 5.0f };
+                Ray rayV = Ray { position, -u, debugUV.y / 5.0f };
                 Ray rayOU = Ray { position, v, (1 - debugUV.x) / 5.0f };
-                Ray rayOV = Ray { position, -u, (1 - debugUV.y) / 5.0f };
+                Ray rayOV = Ray { position, u, (1 - debugUV.y) / 5.0f };
                 drawRay(rayU, glm::vec3 { 1.0f, 0.5f, 0.0f });
                 drawRay(rayV, glm::vec3 { 1.0f, 0.0f, 0.5f });
                 drawRay(rayOU, glm::vec3 { 1.0f, 0.5f, 0.0f });
@@ -122,11 +122,11 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
     //glm::uvec3 tri = hitInfo.triangle;
     // If a sphere was hit first, we compute bilinear interpolation
     //if (tri == glm::uvec3(-1000000)) {
-        //return bilinearInterpolation(image, texCoord, features);
+      //  return bilinearInterpolation(image, texCoord, features);
     //}
     //auto v = mesh.vertices[tri[0]];
     //if (point == v.position) {
-       // v = mesh.vertices[tri[1]];
+      //  v = mesh.vertices[tri[1]];
     //}
     // Computing the derivative
     // First we calculate the 2D distance between the texture coordinates
@@ -196,7 +196,7 @@ glm::vec3 bilinearInterpolationForMipMap(const ImageMipMap& image, int level, co
     glm::vec2 texelPos { (image.width[level] - 1) * texCoord[0], (image.height[level] - 1) * (1 - texCoord[1]) };
     texelPos.x = std::max(0.0f, std::min(float(image.width[level] - 1), texelPos.x));
     texelPos.y = std::max(0.0f, std::min(float(image.height[level] - 1), texelPos.y));
-    glm::vec2 lowerPos { floor((image.width[level] - 1) * texCoord[0]), floor((image.height[level] - 1) * texCoord[1]) };
+    glm::vec2 lowerPos { floor((image.width[level] - 1) * texCoord[0]), floor((image.height[level] - 1) * (1 - texCoord[1])) };
     glm::vec2 upperPos { lowerPos.x + 1, lowerPos.y + 1 };
     float u = texelPos.x - lowerPos.x;
     float v = texelPos.y - lowerPos.y;
