@@ -50,10 +50,10 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         // Set the color of the pixel to the environment color (black if environment mapping is disabled) if the ray misses.
         if (features.extra.enableEnvironmentMapping) {
             glm::vec3 color = (* scene.environmentMap[0]).getColor(ray, features);
-            //drawRay(ray, color);
+            drawRay(ray, color);
             return color;
         } else {
-            //drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
+            drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
             return glm::vec3 { 0.f };
         }
     }

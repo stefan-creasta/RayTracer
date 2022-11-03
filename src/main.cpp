@@ -57,6 +57,58 @@ void renderRayTracingRouter(const Scene& scene, const Trackball& camera, const B
     }
 }
 
+Trackball transformCamera(const Trackball& camera, glm::vec3 deltaPosition, glm::vec3 deltaRotation, float deltaDistance) { 
+    Trackball myCamera = camera;
+    myCamera.setCamera(deltaPosition + camera.lookAt(), camera.rotationEulerAngles() + deltaRotation, camera.distanceFromLookAt() + deltaDistance);
+    return myCamera;
+}
+
+glm::vec3 mbdebug_startLookAt;
+glm::vec3 mbdebug_startAngles;
+float mbdebug_startDistance;
+bool mbdebug_rendered;
+glm::vec2 mbdebug_rayPosition;
+
+void debugMotionBlur(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int steps = 7) { 
+    std::default_random_engine rng;
+    std::uniform_real_distribution<float> rand(0.f, 1.f);
+
+    if (!mbdebug_rendered) {
+        mbdebug_startLookAt = camera.lookAt();
+        mbdebug_startAngles = camera.rotationEulerAngles();
+        mbdebug_startDistance = camera.distanceFromLookAt();
+        mbdebug_rendered = true;
+        return;
+    }
+
+    glm::vec3 endLookAt = camera.lookAt();
+    glm::vec3 endAngles = camera.rotationEulerAngles();
+    float endDistance = camera.distanceFromLookAt();
+
+    glm::vec3 scaleLookAt = endLookAt - mbdebug_startLookAt;
+    glm::vec3 scaleAngles = endAngles - mbdebug_startAngles;
+    float scaleDistance = endDistance - mbdebug_startDistance;
+
+    for (int i = 0; i < steps; i++) {
+        float jitter = rand(rng);
+        float lerpFactor = (float) i;
+        glm::vec3 lerpLookAt = mbdebug_startLookAt + (lerpFactor / (steps)) * scaleLookAt;
+        glm::vec3 lerpAngles = mbdebug_startAngles + (lerpFactor / (steps)) * scaleAngles;
+        float lerpDistance = mbdebug_startDistance + (lerpFactor / (steps)) * scaleDistance;
+
+        Trackball camera2 = camera;
+        camera2.setCamera(lerpLookAt, lerpAngles, lerpDistance);
+
+        Ray cameraRay = camera2.generateRay(mbdebug_rayPosition);
+
+        (void) getFinalColor(scene, bvh, cameraRay, features, 1);
+    }
+
+    mbdebug_startLookAt = camera.lookAt();
+    mbdebug_startAngles = camera.rotationEulerAngles();
+    mbdebug_startDistance = camera.distanceFromLookAt();
+}
+
 static void setOpenGLMatrices(const Trackball& camera);
 static void drawLightsOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 static void drawSceneOpenGL(const Scene& scene);
@@ -105,6 +157,7 @@ int main(int argc, char** argv)
                 case GLFW_KEY_R: {
                     // Shoot a ray. Produce a ray from camera to the far plane.
                     const auto tmp = window.getNormalizedCursorPos();
+                    mbdebug_rayPosition = tmp * 2.0f - 1.0f;
                         optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
                 } break;
                 case GLFW_KEY_A: {
@@ -227,7 +280,13 @@ int main(int argc, char** argv)
                     // Perform a new render and measure the time it took to generate the image.
                     using clock = std::chrono::high_resolution_clock;
                     const auto start = clock::now();
-                    renderRayTracingRouter(scene, camera, bvh, screen, config.features);
+                    if (config.features.extra.enableMotionBlur) { 
+                        renderRayTracingMotionBlur(scene, camera, bvh, screen, config.features);
+                        Trackball myCamera = transformCamera(camera, { 0, 0, 0.3 }, {0, 0, 0}, 0);
+                        renderRayTracingMotionBlur(scene, myCamera, bvh, screen, config.features);
+                    } else {
+                        renderRayTracingRouter(scene, camera, bvh, screen, config.features);
+                    }
                     const auto end = clock::now();
                     std::cout << "Time to render image: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
                     // Store the new image.
@@ -374,6 +433,9 @@ int main(int argc, char** argv)
                     if (config.features.extra.enableDepthOfField) {
                         debugDepthOfField(scene, bvh, *optDebugRay, config.features, 1);
                     }
+                    else if (config.features.extra.enableMotionBlur) {
+                        debugMotionBlur(scene, camera, bvh, screen, config.features);
+                    }
                     else if (config.features.extra.enableTransparency) {
                         (void)calculateColorTransparency(scene, *optDebugRay, bvh, config.features, 0);
                     }
@@ -464,7 +526,13 @@ int main(int argc, char** argv)
                 screen.clear(glm::vec3(0.0f));
                 Trackball camera { &window, glm::radians(cameraConfig.fieldOfView), cameraConfig.distanceFromLookAt };
                 camera.setCamera(cameraConfig.lookAt, glm::radians(cameraConfig.rotation), cameraConfig.distanceFromLookAt);
-                renderRayTracingRouter(scene, camera, bvh, screen, config.features);
+                if (config.features.extra.enableMotionBlur) {
+                    renderRayTracingMotionBlur(scene, camera, bvh, screen, config.features);
+                    Trackball myCamera = transformCamera(camera, { 0, 0, 0.3 }, { 0, 0, 0 }, 0);
+                    renderRayTracingMotionBlur(scene, myCamera, bvh, screen, config.features);
+                } else {
+                    renderRayTracingRouter(scene, camera, bvh, screen, config.features);
+                }
                 const auto filename_base = fmt::format("{}_{}_cam_{}", sceneName, start_time_string, index);
                 const auto filepath = config.outputDir / (filename_base + ".bmp");
                 fmt::print("Image {} saved to {}\n", index, filepath.string());
