@@ -236,13 +236,20 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     if (root == -1)
         return;
 
+    int myLeafIdx = leafIdx;
+    bool debugSAH = false;
+    if (leafIdx > numLeaves()) { 
+        debugSAH = true;
+        myLeafIdx = leafIdx % numLeaves();
+    }
+
     Node current = nodes[root];
-    int currentLeafIdx = leafIdx;
+    int currentLeafIdx = myLeafIdx;
     int level = 0;
 
     while (!current.isLeaf) {
         // Visual debug for SAH
-        /* if (level == 9) {
+        if (debugSAH && level == 9) {
             AxisAlignedBox debugAAB = current.axisAlignedBox;
             drawAABB(debugAAB, DrawMode::Wireframe);
             debugAAB.upper[level % 3] = current.splitX;
@@ -250,7 +257,7 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
             drawAABB(debugAAB, DrawMode::Filled, glm::vec3 { 0.8f, 0.8f, 0 }, 0.3);
             drawAABB(nodes[current.children[0]].axisAlignedBox, DrawMode::Filled, glm::vec3 {1.0, 0.0, 1.0}, 0.3);
             drawAABB(nodes[current.children[1]].axisAlignedBox, DrawMode::Filled, glm::vec3 { 1.0, 0.0, 1.0 }, 0.3);
-        }*/
+        }
         level++;
 
         if (nodes[current.children[0]].numLeaves > currentLeafIdx) {

@@ -162,6 +162,7 @@ int main(int argc, char** argv)
         int bvhDebugLeaf = 0;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
+        bool debugSAH { false };
         ViewMode viewMode { ViewMode::Rasterization };
 
         window.registerKeyCallback([&](int key, int /* scancode */, int action, int /* mods */) {
@@ -323,8 +324,10 @@ int main(int argc, char** argv)
                 if (debugBVHLevel)
                     ImGui::SliderInt("BVH Level", &bvhDebugLevel, 0, bvh.numLevels() - 1);
                 ImGui::Checkbox("Draw BVH Leaf", &debugBVHLeaf);
-                if (debugBVHLeaf)
+                if (debugBVHLeaf) {
+                    ImGui::Checkbox("Show SAH Debug", &debugSAH);
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
+                }
             }
 
             ImGui::Spacing();
@@ -486,7 +489,8 @@ int main(int argc, char** argv)
                     if (debugBVHLevel)
                         bvh.debugDrawLevel(bvhDebugLevel);
                     if (debugBVHLeaf)
-                        bvh.debugDrawLeaf(bvhDebugLeaf);
+                        // Offsetting the leafIdx by the number of leaves activates the SAH debug.
+                        bvh.debugDrawLeaf(bvhDebugLeaf + (debugSAH ? bvh.numLeaves() : 0));
                     enableDebugDraw = false;
                     glPopAttrib();
                 }
