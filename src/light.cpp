@@ -57,9 +57,9 @@ glm::vec3 sampleEnvironment(const EnvironmentMap& map, const BvhInterface& bvh, 
             glm::vec3 pos = sray.origin + 100000.f * sray.direction;
             glm::vec3 col = map.getColor(sray, features);
             avgColor += computeShading(pos, col, features, ray, myHitInfo);
-            //drawRay(sray, col);
+            drawRay(sray, col);
         } else {
-            //drawRay(sray, glm::vec3 {1.f, 0.f, 0.f});
+            drawRay(sray, glm::vec3 {1.f, 0.f, 0.f});
         }
     }
     return avgColor * float((1.0 / float(sampleSize)));
