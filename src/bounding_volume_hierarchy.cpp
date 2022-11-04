@@ -6,7 +6,6 @@
 #include "interpolate.h"
 #include <glm/glm.hpp>
 #include <queue>
-#include <iostream>
 
 // Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
 void calculateCentroid(MeshTrianglePair& meshTrianglePair)
