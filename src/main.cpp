@@ -102,7 +102,7 @@ void debugMotionBlur(const Scene& scene, const Trackball& camera, const BvhInter
 
     for (int i = 0; i < steps; i++) {
         float jitter = rand(rng);
-        float lerpFactor = (float) i;
+        float lerpFactor = (float) i + jitter;
         glm::vec3 lerpLookAt = mbdebug_startLookAt + (lerpFactor / (steps)) * scaleLookAt;
         glm::vec3 lerpAngles = mbdebug_startAngles + (lerpFactor / (steps)) * scaleAngles;
         float lerpDistance = mbdebug_startDistance + (lerpFactor / (steps)) * scaleDistance;
