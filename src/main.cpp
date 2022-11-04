@@ -44,7 +44,8 @@ enum class ViewMode {
 };
 
 int debugBVHLeafId = 0;
-int environmentMapId = 0;
+size_t environmentMapId = 0;
+
 
 void renderRayTracingRouter(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
 {

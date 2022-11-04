@@ -78,10 +78,10 @@ Ray returnGlossyRay(Ray reflection, float degreeBlur)
     glm::vec3 p2 = reflection.origin + u * degreeBlur / 10.0f - v * degreeBlur / 10.0f;
     glm::vec3 p3 = reflection.origin - u * degreeBlur / 10.0f + v * degreeBlur / 10.0f;
     glm::vec3 p4 = reflection.origin - u * degreeBlur / 10.0f - v * degreeBlur / 10.0f;
-    Vertex v1 = Vertex(p1, reflection.direction);
-    Vertex v2 = Vertex(p2, reflection.direction);
-    Vertex v3 = Vertex(p3, reflection.direction);
-    Vertex v4 = Vertex(p4, reflection.direction);
+    Vertex v1 = Vertex{p1, reflection.direction};
+    Vertex v2 = Vertex{p2, reflection.direction};
+    Vertex v3 = Vertex{p3, reflection.direction};
+    Vertex v4 = Vertex{p4, reflection.direction};
     drawTriangle(v1, v2, v3);
     drawTriangle(v2, v3, v4);
     return rr;
