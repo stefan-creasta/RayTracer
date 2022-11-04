@@ -114,7 +114,8 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
     }
 
     size_t median = useSAH ? getSAHBestSplit(indices, meshTrianglePairs, direction) : getMedian(indices, meshTrianglePairs, direction);
-    
+    const float splitX = meshTrianglePairs[indices[median]].centroid[direction];
+
     const std::span<size_t> leftIndices = indices.subspan(0, median);
     const std::span<size_t> rightIndices = indices.subspan(median, indices.size() - median);
     //const std::span<size_t> leftIndices = std::span<size_t>(indices.begin(), indices.begin() + median);
@@ -129,7 +130,9 @@ size_t bvhSplitHelper(Scene* pScene, std::vector<Node>& nodes, const std::span<s
         false, 
         currentDepth,
         glm::max(nodes[left].numLevels, nodes[right].numLevels) + 1, 
-        nodes[left].numLeaves + nodes[right].numLeaves 
+        nodes[left].numLeaves + nodes[right].numLeaves,
+        0.f,
+        splitX
     });
     return nodes.size() - 1;
 }
@@ -233,10 +236,30 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     if (root == -1)
         return;
 
-    Node current = nodes[root];
-    int currentLeafIdx = leafIdx;
+    int myLeafIdx = leafIdx;
+    bool debugSAH = false;
+    if (leafIdx > numLeaves()) { 
+        debugSAH = true;
+        myLeafIdx = leafIdx % numLeaves();
+    }
 
-    while (!current.isLeaf) { 
+    Node current = nodes[root];
+    int currentLeafIdx = myLeafIdx;
+    int level = 0;
+
+    while (!current.isLeaf) {
+        // Visual debug for SAH
+        if (debugSAH && level == 9) {
+            AxisAlignedBox debugAAB = current.axisAlignedBox;
+            drawAABB(debugAAB, DrawMode::Wireframe);
+            debugAAB.upper[level % 3] = current.splitX;
+            debugAAB.lower[level % 3] = current.splitX + 0.005;
+            drawAABB(debugAAB, DrawMode::Filled, glm::vec3 { 0.8f, 0.8f, 0 }, 0.3);
+            drawAABB(nodes[current.children[0]].axisAlignedBox, DrawMode::Filled, glm::vec3 {1.0, 0.0, 1.0}, 0.3);
+            drawAABB(nodes[current.children[1]].axisAlignedBox, DrawMode::Filled, glm::vec3 { 1.0, 0.0, 1.0 }, 0.3);
+        }
+        level++;
+
         if (nodes[current.children[0]].numLeaves > currentLeafIdx) {
             current = nodes[current.children[0]];
         } else {

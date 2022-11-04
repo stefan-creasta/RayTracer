@@ -23,6 +23,7 @@ struct Node {
     int numLevels;
     int numLeaves;
     float t;
+    float splitX;
 };
 
 class BoundingVolumeHierarchy {
