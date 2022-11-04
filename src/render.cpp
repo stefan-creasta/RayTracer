@@ -56,10 +56,10 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         // Set the color of the pixel to the environment color (black if environment mapping is disabled) if the ray misses.
         if (features.extra.enableEnvironmentMapping) {
             glm::vec3 color = (* scene.environmentMap[0]).getColor(ray, features);
-            //drawRay(ray, color);
+            drawRay(ray, color);
             return color;
         } else {
-            //drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
+            drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
             return glm::vec3 { 0.f };
         }
     }
@@ -177,6 +177,71 @@ void renderRayTracingMRaysPerPixel(const Scene& scene, const Trackball& camera, 
             }
             fcolor *= glm::vec3(1.0f/(samples*1.0f));
             screen.setPixel(x, y, fcolor);
+        }
+    }
+}
+
+glm::vec3 startLookAt;
+glm::vec3 startAngles;
+float startDistance;
+bool rendered;
+
+void renderRayTracingMotionBlur(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int steps)
+{
+    glm::ivec2 windowResolution = screen.resolution();
+    std::default_random_engine rng;
+    std::uniform_real_distribution<float> rand(0.f, 1.f);
+
+    if (!rendered) { 
+        renderRayTracing(scene, camera, bvh, screen, features);
+        startLookAt = camera.lookAt();
+        startAngles = camera.rotationEulerAngles();
+        startDistance = camera.distanceFromLookAt();
+        rendered = true;
+        return;
+    }
+
+    glm::vec3 endLookAt = camera.lookAt();
+    glm::vec3 endAngles = camera.rotationEulerAngles();
+    float endDistance = camera.distanceFromLookAt();
+
+    glm::vec3 scaleLookAt = endLookAt - startLookAt;
+    glm::vec3 scaleAngles = endAngles - startAngles;
+    float scaleDistance = endDistance - startDistance;
+
+    startLookAt = camera.lookAt();
+    startAngles = camera.rotationEulerAngles();
+    startDistance = camera.distanceFromLookAt();
+    // Enable multi threading in Release mode
+#ifdef NDEBUG
+#pragma omp parallel for schedule(guided)
+#endif
+    for (int y = 0; y < windowResolution.y; y++) {
+        for (int x = 0; x != windowResolution.x; x++) {
+            glm::vec3 col {0.f};
+            for (int i = 0; i < steps; i++) {
+                float jitter = rand(rng);
+                float lerpFactor = jitter + i;
+                glm::vec3 lerpLookAt = startLookAt + (lerpFactor / (steps)) * scaleLookAt;
+                glm::vec3 lerpAngles = startAngles + (lerpFactor / (steps)) * scaleAngles;
+                float lerpDistance = startDistance + (lerpFactor / (steps)) * scaleDistance;
+
+                Trackball camera2 = camera;
+                camera2.setCamera(lerpLookAt, lerpAngles, lerpDistance);
+
+                // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
+                const glm::vec2 normalizedPixelPos {
+                    float(x) / float(windowResolution.x) * 2.0f - 1.0f,
+                    float(y) / float(windowResolution.y) * 2.0f - 1.0f
+                };
+                Ray cameraRay = camera2.generateRay(normalizedPixelPos);
+                /*
+                    Extra Feature: Transparency
+                */
+                
+                col += getFinalColor(scene, bvh, cameraRay, features, 1);
+            }
+            screen.setPixel(x, y, col / (float) steps);
         }
     }
 }
