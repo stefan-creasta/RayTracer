@@ -183,16 +183,18 @@ glm::vec3 EnvironmentMap::getColor(Ray ray, const Features& features) const
             return this->backgroundColor;
 
         // Debug: Show the Radiance Bins
-        /*for (const AxisAlignedRectangle& rectangle : radianceBins) { 
-            glm::vec2 middle = 0.5f * (rectangle.lower + rectangle.upper);
-            middle.y = 1.f - middle.y;
-            const glm::vec2 aabSize = rectangle.upper - rectangle.lower;
-            const float diffx = 0.5 * aabSize.x - glm::abs(x - middle.x);
-            const float diffy = 0.5 * aabSize.y - glm::abs(y - middle.y);
+        if (viewRadianceBins) {
+            for (const AxisAlignedRectangle& rectangle : radianceBins) {
+                glm::vec2 middle = 0.5f * (rectangle.lower + rectangle.upper);
+                middle.y = 1.f - middle.y;
+                const glm::vec2 aabSize = rectangle.upper - rectangle.lower;
+                const float diffx = 0.5 * aabSize.x - glm::abs(x - middle.x);
+                const float diffy = 0.5 * aabSize.y - glm::abs(y - middle.y);
 
-            if (diffx > 0 && diffy > 0 && (diffx < 0.01 || diffy < 0.01))
-                return glm::vec3 { 1.f, 0.f, 0.f };
-        }*/
+                if (diffx > 0 && diffy > 0 && (diffx < 0.01 || diffy < 0.01))
+                    return glm::vec3 { 1.f, 0.f, 0.f };
+            }
+        }
 
         if (features.extra.enableBilinearTextureFiltering) { 
             return bilinearInterpolation(texture.value(), glm::vec2 {x, y}, features);
@@ -202,4 +204,8 @@ glm::vec3 EnvironmentMap::getColor(Ray ray, const Features& features) const
     } else {
         return this->backgroundColor;
     }
+}
+
+void EnvironmentMap::setViewRadianceBins(bool value) { 
+    viewRadianceBins = value;
 }

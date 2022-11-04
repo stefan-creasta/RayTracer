@@ -150,10 +150,10 @@ int main(int argc, char** argv)
         SceneType sceneType { SceneType::SingleTriangle };
         std::optional<Ray> optDebugRay;
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
-        const std::vector<EnvironmentMap> environmentMaps
+        std::vector<EnvironmentMap> environmentMaps
         {
-            EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }),
-            EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_equirectangular.hdr", SPHERICAL, 180.f, { 0.5f, 0.5f, 0.5f }),
+            EnvironmentMap::loadEnvironmentMap(config.dataPath / "default.png", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }),
+            EnvironmentMap::loadEnvironmentMap(config.dataPath / "default.png", SPHERICAL, 180.f, { 0.5f, 0.5f, 0.5f }),
         };
         scene.environmentMap.push_back(&environmentMaps[environmentMapId]);
         BvhInterface bvh { &scene, config.features };
@@ -163,6 +163,7 @@ int main(int argc, char** argv)
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
         bool debugSAH { false };
+        bool viewRadianceBins { false };
         ViewMode viewMode { ViewMode::Rasterization };
 
         window.registerKeyCallback([&](int key, int /* scancode */, int action, int /* mods */) {
@@ -274,6 +275,7 @@ int main(int argc, char** argv)
                 scene.environmentMap.clear();
                 scene.environmentMap.push_back(&environmentMaps[environmentMapId]);
             }
+            ImGui::Checkbox("View Radiance Bins", &viewRadianceBins);
             ImGui::Separator();
 
             if (ImGui::TreeNode("Camera(read only)")) {
@@ -299,6 +301,7 @@ int main(int argc, char** argv)
                     free(pOutPath); // NFD is a C API so we have to manually free the memory it allocated.
                     outPath.replace_extension("bmp"); // Make sure that the file extension is *.bmp
                     config.features.extra.suppressBvhVisitDebug = true;
+                    scene.environmentMap[0]->setViewRadianceBins(false);
                     // Perform a new render and measure the time it took to generate the image.
                     using clock = std::chrono::high_resolution_clock;
                     const auto start = clock::now();
@@ -501,6 +504,7 @@ int main(int argc, char** argv)
             } break;
             case ViewMode::RayTracing: {
                 config.features.extra.suppressBvhVisitDebug = true;
+                scene.environmentMap[0]->setViewRadianceBins(viewRadianceBins);
                 screen.clear(glm::vec3(0.0f));
                 renderRayTracingRouter(scene, camera, bvh, screen, config.features);
                 screen.setPixel(0, 0, glm::vec3(1.0f));
@@ -537,7 +541,7 @@ int main(int argc, char** argv)
                            sceneName = serialize(type);
                        }),
             config.scene);
-        const EnvironmentMap cliMap = EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f });
+        EnvironmentMap cliMap = EnvironmentMap::loadEnvironmentMap(config.dataPath / "default.png", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f });
         scene.environmentMap.push_back(&cliMap);
         BvhInterface bvh { &scene, config.features };
         for (Mesh& mesh : scene.meshes) {

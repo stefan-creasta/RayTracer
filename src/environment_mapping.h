@@ -21,6 +21,7 @@ public:
     std::vector<Ray> getSamplingRay(const glm::vec3& position, const glm::vec3& normal, int n) const;
     Ray getRayForCoordinate(const glm::vec2& coordinates) const;
     glm::vec3 getColor(Ray ray, const Features& features) const;
+    void setViewRadianceBins(bool value);
 
 private:
     const std::optional<Image> texture = std::nullopt;
@@ -28,4 +29,5 @@ private:
     const float verticalFOVFactor = 1.f;
     const EnvironmentMappingType mappingType = SPHERICAL;
     std::vector<AxisAlignedRectangle> radianceBins;
+    bool viewRadianceBins = false;
 };
