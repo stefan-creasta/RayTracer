@@ -70,13 +70,6 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
-
-    float aperture = 0.1;
-    std::default_random_engine rng;
-    std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
-    #ifdef NDEBUG
-    #pragma omp parallel for schedule(guided)
-    #endif
     for (int y = 0; y < windowResolution.y; y++) {
         for (int x = 0; x != windowResolution.x; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
@@ -100,30 +93,34 @@ void renderRayTracingDepthOfField(const Scene& scene, const Trackball& camera, c
 {
     glm::ivec2 windowResolution = screen.resolution();
 
-    std::default_random_engine rng;
-    std::uniform_real_distribution<float> dist(-aperture/2, aperture/2);
-
     // Enable multi threading in Release mode
     #ifdef NDEBUG
-    #pragma omp parallel for schedule(guided)
+    #pragma omp parallel
     #endif
-    for (int y = 0; y < windowResolution.y; y++) {
-        for (int x = 0; x != windowResolution.x; x++) {
-            // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
-            const glm::vec2 normalizedPixelPos {
-                float(x) / float(windowResolution.x) * 2.0f - 1.0f,
-                float(y) / float(windowResolution.y) * 2.0f - 1.0f
-            };
-            Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            glm::vec3 col = glm::vec3 {0, 0, 0};
-                
-            glm::vec3 focalPoint = getFocalPoint(cameraRay, focalLength);
-            std::vector <Ray> rays = sampledRays(focalPoint, generateSamples(cameraRay.origin, aperture, samples, rng, dist));
-            for (auto r : rays) {
-                col += getFinalColor(scene, bvh, r, features, 0);
+    {
+        std::default_random_engine rng;
+        std::uniform_real_distribution<float> dist(-aperture / 2, aperture / 2);
+#ifdef NDEBUG
+#pragma omp for schedule(guided)
+#endif
+        for (int y = 0; y < windowResolution.y; y++) {
+            for (int x = 0; x != windowResolution.x; x++) {
+                // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
+                const glm::vec2 normalizedPixelPos {
+                    float(x) / float(windowResolution.x) * 2.0f - 1.0f,
+                    float(y) / float(windowResolution.y) * 2.0f - 1.0f
+                };
+                Ray cameraRay = camera.generateRay(normalizedPixelPos);
+                glm::vec3 col = glm::vec3 { 0, 0, 0 };
+
+                glm::vec3 focalPoint = getFocalPoint(cameraRay, focalLength);
+                std::vector<Ray> rays = sampledRays(focalPoint, generateSamples(cameraRay.origin, aperture, samples, rng, dist));
+                for (auto r : rays) {
+                    col += getFinalColor(scene, bvh, r, features, 0);
+                }
+                col = col * glm::vec3(1.0f / (rays.size()));
+                screen.setPixel(x, y, col);
             }
-            col = col * glm::vec3(1.0f / (rays.size()));
-            screen.setPixel(x, y, col);
         }
     }
 }
@@ -156,27 +153,31 @@ void renderRayTracingMRaysPerPixel(const Scene& scene, const Trackball& camera, 
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
     
-
-    std::default_random_engine rng;
-    std::uniform_real_distribution<float> dist(0, 1);
     #ifdef NDEBUG
-    #pragma omp parallel for schedule(guided)
+    #pragma omp parallel
     #endif
-    for (int y = 0; y < windowResolution.y; y++) {
-        for (int x = 0; x != windowResolution.x; x++) {
-            // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
-            
-            glm::vec3 fcolor(0.0f);
-            for (int i = 0; i < samples; i++) {
-                const glm::vec2 normalizedPixelPos {
-                    float(x + dist(rng)) / float(windowResolution.x) * 2.0f - 1.0f,
-                    float(y + dist(rng)) / float(windowResolution.y) * 2.0f - 1.0f
-                };
-                Ray cameraRay = camera.generateRay(normalizedPixelPos);
-                fcolor += getFinalColor(scene, bvh, cameraRay, features, 0);
+    {
+        std::default_random_engine rng;
+        std::uniform_real_distribution<float> dist(0, 1);
+#ifdef NDEBUG
+#pragma omp for schedule(guided)
+#endif
+        for (int y = 0; y < windowResolution.y; y++) {
+            for (int x = 0; x != windowResolution.x; x++) {
+                // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
+
+                glm::vec3 fcolor(0.0f);
+                for (int i = 0; i < samples; i++) {
+                    const glm::vec2 normalizedPixelPos {
+                        float(x + dist(rng)) / float(windowResolution.x) * 2.0f - 1.0f,
+                        float(y + dist(rng)) / float(windowResolution.y) * 2.0f - 1.0f
+                    };
+                    Ray cameraRay = camera.generateRay(normalizedPixelPos);
+                    fcolor += getFinalColor(scene, bvh, cameraRay, features, 0);
+                }
+                fcolor *= glm::vec3(1.0f / (samples * 1.0f));
+                screen.setPixel(x, y, fcolor);
             }
-            fcolor *= glm::vec3(1.0f/(samples*1.0f));
-            screen.setPixel(x, y, fcolor);
         }
     }
 }
@@ -189,10 +190,8 @@ bool rendered;
 void renderRayTracingMotionBlur(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, int steps)
 {
     glm::ivec2 windowResolution = screen.resolution();
-    std::default_random_engine rng;
-    std::uniform_real_distribution<float> rand(0.f, 1.f);
 
-    if (!rendered) { 
+    if (!rendered) {
         renderRayTracing(scene, camera, bvh, screen, features);
         startLookAt = camera.lookAt();
         startAngles = camera.rotationEulerAngles();
@@ -214,34 +213,41 @@ void renderRayTracingMotionBlur(const Scene& scene, const Trackball& camera, con
     startDistance = camera.distanceFromLookAt();
     // Enable multi threading in Release mode
 #ifdef NDEBUG
-#pragma omp parallel for schedule(guided)
+#pragma omp parallel
 #endif
-    for (int y = 0; y < windowResolution.y; y++) {
-        for (int x = 0; x != windowResolution.x; x++) {
-            glm::vec3 col {0.f};
-            for (int i = 0; i < steps; i++) {
-                float jitter = rand(rng);
-                float lerpFactor = jitter + i;
-                glm::vec3 lerpLookAt = startLookAt + (lerpFactor / (steps)) * scaleLookAt;
-                glm::vec3 lerpAngles = startAngles + (lerpFactor / (steps)) * scaleAngles;
-                float lerpDistance = startDistance + (lerpFactor / (steps)) * scaleDistance;
+    {
+        std::default_random_engine rng;
+        std::uniform_real_distribution<float> rand(0.f, 1.f);
+#ifdef NDEBUG
+#pragma omp for schedule(guided)
+#endif
+        for (int y = 0; y < windowResolution.y; y++) {
+            for (int x = 0; x != windowResolution.x; x++) {
+                glm::vec3 col { 0.f };
+                for (int i = 0; i < steps; i++) {
+                    float jitter = rand(rng);
+                    float lerpFactor = jitter + i;
+                    glm::vec3 lerpLookAt = startLookAt + (lerpFactor / (steps)) * scaleLookAt;
+                    glm::vec3 lerpAngles = startAngles + (lerpFactor / (steps)) * scaleAngles;
+                    float lerpDistance = startDistance + (lerpFactor / (steps)) * scaleDistance;
 
-                Trackball camera2 = camera;
-                camera2.setCamera(lerpLookAt, lerpAngles, lerpDistance);
+                    Trackball camera2 = camera;
+                    camera2.setCamera(lerpLookAt, lerpAngles, lerpDistance);
 
-                // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
-                const glm::vec2 normalizedPixelPos {
-                    float(x) / float(windowResolution.x) * 2.0f - 1.0f,
-                    float(y) / float(windowResolution.y) * 2.0f - 1.0f
-                };
-                Ray cameraRay = camera2.generateRay(normalizedPixelPos);
-                /*
-                    Extra Feature: Transparency
-                */
-                
-                col += getFinalColor(scene, bvh, cameraRay, features, 1);
+                    // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
+                    const glm::vec2 normalizedPixelPos {
+                        float(x) / float(windowResolution.x) * 2.0f - 1.0f,
+                        float(y) / float(windowResolution.y) * 2.0f - 1.0f
+                    };
+                    Ray cameraRay = camera2.generateRay(normalizedPixelPos);
+                    /*
+                        Extra Feature: Transparency
+                    */
+
+                    col += getFinalColor(scene, bvh, cameraRay, features, 1);
+                }
+                screen.setPixel(x, y, col / (float)steps);
             }
-            screen.setPixel(x, y, col / (float) steps);
         }
     }
 }
