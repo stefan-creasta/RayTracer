@@ -113,6 +113,7 @@ glm::vec3 getPlaneCoord(Ray ray, glm::vec3 point) {
     return ray.origin + glm::dot(rToP, x) * x + glm::dot(rToP, y) * y;
 }
 
+
 glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, const Features& features, const Ray& ray, HitInfo hitInfo)
 {
     ImageMipMap mipmap = getMipMap(image);
@@ -122,7 +123,7 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
 
     Mesh& mesh = *hitInfo.mesh;
     glm::uvec3 tri = hitInfo.triangle;
-    // If a sphere was hit first, we compute bilinear interpolation
+
     if (tri == glm::uvec3(-1000000)) {
         return bilinearInterpolation(image, texCoord, features);
     }
@@ -141,7 +142,6 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
     if (areaP >= 1e-6) {
         k = (areaV / areaP - 1.0f) / 2.8f;
     }
-    //std::cout << areaV << " " << areaP << " " << areaV / areaP  << " " << k << std::endl;
     glm::vec3 w = glm::normalize(hitInfo.normal);
     glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
     glm::vec3 xVector = glm::normalize(glm::cross(t, w));

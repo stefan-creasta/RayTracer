@@ -152,6 +152,11 @@ int main(int argc, char** argv)
                     scene.environmentMap.push_back(&environmentMaps[environmentMapId]);
                     selectedLightIdx = scene.lights.empty() ? -1 : 0;
                     bvh = BvhInterface(&scene, config.features);
+                    for (Mesh& mesh : scene.meshes) {
+                        if (mesh.material.kdTexture) {
+                            getMipMap(*mesh.material.kdTexture);
+                        }
+                    }
                     if (optDebugRay) {
                         HitInfo dummy {};
                         bvh.intersect(*optDebugRay, dummy, config.features);
@@ -453,7 +458,11 @@ int main(int argc, char** argv)
         const EnvironmentMap cliMap = EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f });
         scene.environmentMap.push_back(&cliMap);
         BvhInterface bvh { &scene, config.features };
-
+        for (Mesh& mesh : scene.meshes) {
+            if (mesh.material.kdTexture) {
+                getMipMap(*mesh.material.kdTexture);
+            }
+        }
         using clock = std::chrono::high_resolution_clock;
         // Create output directory if it does not exist.
         if (!std::filesystem::exists(config.outputDir)) {
@@ -619,10 +628,11 @@ bool sliderIntSquarePower(const char* label, int* v, int v_min, int v_max)
 
 std::vector<Image> images;
 std::vector<ImageMipMap> mipmaps;
+size_t mipmapSize = 0;
 
 size_t conversionToMipMap(const Image& image) {
     size_t i;
-    for (i = 0; i < images.size(); i++) {
+    for (i = 0; i < mipmapSize; i++) {
         if (image.width == images[i].width) {
             if (image.height == images[i].height) {
                 bool isFound = true;
@@ -652,10 +662,8 @@ ImageMipMap transformToMipMap(const Image& image)
             break;
         }
         std::vector<glm::vec3> vec;
-        // std::cout << mipmap.height[last] << std::endl;
         for (size_t i = 0; i < static_cast<size_t>(mipmap.height[last]); i += 2) {
             for (size_t j = 0; j < static_cast<size_t>(mipmap.width[last]); j += 2) {
-                //image.pixels[j * image.width + i];
                 size_t temp = static_cast<size_t>(mipmap.width[last]);
                 glm::vec3 avg = mipmap.pixels[last][i * temp + j] + mipmap.pixels[last][i * temp + j + 1] + mipmap.pixels[last][(i + 1) * temp + j] + mipmap.pixels[last][(i + 1) * temp + j + 1];
                 avg *= (1.0f / 4.0f);
@@ -674,16 +682,11 @@ ImageMipMap getMipMap(const Image& image)
 {
     ImageMipMap mipmap;
     size_t i = conversionToMipMap(image);
-    if (i >= images.size()) {
-        //omp_set_lock(&writelock);
-#pragma omp critical
-        {
-
-            mipmap = transformToMipMap(image);
-            images.push_back(image);
-            mipmaps.push_back(mipmap);
-        }
-        //omp_unset_lock(&writelock);
+    if (i >= mipmapSize) {
+        mipmap = transformToMipMap(image);
+        images.push_back(image);
+        mipmaps.push_back(mipmap);
+        mipmapSize++;
     } else {
         return mipmaps[i];
     }
