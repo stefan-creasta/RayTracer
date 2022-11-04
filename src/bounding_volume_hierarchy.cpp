@@ -6,7 +6,6 @@
 #include "interpolate.h"
 #include <glm/glm.hpp>
 #include <queue>
-#include <iostream>
 
 // Calculate the centroid of a mesh triangle referenced using a MeshTrianglePair.
 void calculateCentroid(MeshTrianglePair& meshTrianglePair)
@@ -268,8 +267,8 @@ void BoundingVolumeHierarchy::triangleIntersectUpdate(const glm::uvec3& tri, Hit
         hitInfo.normal = v0.normal;
     }
     hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
-    //hitInfo.mesh = &mesh;
-    //hitInfo.triangle = tri;
+    hitInfo.mesh = &mesh;
+    hitInfo.triangle = tri;
 }
 
 bool isInAABB(AxisAlignedBox a, glm::vec3 x)
@@ -421,7 +420,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto v2 = mesh.vertices[tri[2]];
             triangleIntersectUpdate(tri, hitInfo, ray, mesh, features);
             if (features.enableNormalInterp) interpolateNormalDebug(v0, v1, v2, ray, hitInfo);
-            drawTriangle(v0, v1, v2);
+                drawTriangle(v0, v1, v2);
         }
         return hit || hitTri;
     }

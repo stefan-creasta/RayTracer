@@ -27,6 +27,7 @@ add_library(FinalProjectLib
 	"src/texture.cpp"
 	"src/shading.cpp"
 	"src/interpolate.cpp"
+	"src/intersect.cpp"
 	"src/render.cpp"
 	"src/transparency.cpp" # EXTRA FEATURE: TRANSPARENCY
 	"src/dof.cpp" # EXTRA FEATURE : DEPTH OF FIELD

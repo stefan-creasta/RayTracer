@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "intersect.h"
 #include <array>
 #include <framework/ray.h>
 #include <vector>
