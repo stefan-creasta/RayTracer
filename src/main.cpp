@@ -152,8 +152,8 @@ int main(int argc, char** argv)
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
         std::vector<EnvironmentMap> environmentMaps
         {
-            EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }),
-            EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_equirectangular.hdr", SPHERICAL, 180.f, { 0.5f, 0.5f, 0.5f }),
+            EnvironmentMap::loadEnvironmentMap(config.dataPath / "default.png", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f }),
+            EnvironmentMap::loadEnvironmentMap(config.dataPath / "default.png", SPHERICAL, 180.f, { 0.5f, 0.5f, 0.5f }),
         };
         scene.environmentMap.push_back(&environmentMaps[environmentMapId]);
         BvhInterface bvh { &scene, config.features };
@@ -541,7 +541,7 @@ int main(int argc, char** argv)
                            sceneName = serialize(type);
                        }),
             config.scene);
-        EnvironmentMap cliMap = EnvironmentMap::loadEnvironmentMap(config.dataPath / "environment_map_cylindrical.jpg", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f });
+        EnvironmentMap cliMap = EnvironmentMap::loadEnvironmentMap(config.dataPath / "default.png", CYLINDRICAL, 120.f, { 0.5f, 0.5f, 0.5f });
         scene.environmentMap.push_back(&cliMap);
         BvhInterface bvh { &scene, config.features };
         for (Mesh& mesh : scene.meshes) {
