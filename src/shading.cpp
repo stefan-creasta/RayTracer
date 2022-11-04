@@ -138,10 +138,10 @@ glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, 
     float areaP = glm::length(glm::cross(p0 - p1, p0 - p2));
     
     float k = mipmap.height.size();
-    if (areaP != 0.0f) {
-        float k = (areaV / areaP - 1.0f) / 2.8f;
+    if (areaP >= 1e-6) {
+        k = (areaV / areaP - 1.0f) / 2.8f;
     }
-
+    //std::cout << areaV << " " << areaP << " " << areaV / areaP  << " " << k << std::endl;
     glm::vec3 w = glm::normalize(hitInfo.normal);
     glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
     glm::vec3 xVector = glm::normalize(glm::cross(t, w));

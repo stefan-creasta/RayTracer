@@ -674,7 +674,7 @@ ImageMipMap getMipMap(const Image& image)
 {
     ImageMipMap mipmap;
     size_t i = conversionToMipMap(image);
-    if (i == images.size()) {
+    if (i >= images.size()) {
         //omp_set_lock(&writelock);
 #pragma omp critical
         {
