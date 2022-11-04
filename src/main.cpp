@@ -169,7 +169,7 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Hard shadows", &config.features.enableHardShadow);
                 ImGui::Checkbox("Soft shadows", &config.features.enableSoftShadow);
                 if (config.features.enableSoftShadow) {
-                    ImGui::SliderInt("Sample size", &sampleSize, 10, 100);
+                    ImGui::SliderInt("Sample size", &sampleSize, 10, 500);
                 }
                 ImGui::Checkbox("BVH", &config.features.enableAccelStructure);
                 ImGui::Checkbox("Texture mapping", &config.features.enableTextureMapping);

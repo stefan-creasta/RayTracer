@@ -104,19 +104,50 @@ std::vector<Ray> glossyRays(Ray reflection, float degreeBlur)
     return rays;
 }
 
+glm::vec3 getPlaneCoord(Ray ray, glm::vec3 point) {
+    glm::vec3 w = glm::normalize(ray.direction);
+    glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
+    glm::vec3 x = glm::normalize(glm::cross(t, w));
+    glm::vec3 y = glm::normalize(glm::cross(w, x));
+    glm::vec3 rToP = point - ray.origin;
+    return ray.origin + glm::dot(rToP, x) * x + glm::dot(rToP, y) * y;
+}
+
 glm::vec3 trilinearInterpolation(const Image& image, const glm::vec2& texCoord, const Features& features, const Ray& ray, HitInfo hitInfo)
 {
     ImageMipMap mipmap = getMipMap(image);
     glm::vec3 point = ray.origin + ray.t * ray.direction;
     float dist = glm::distance(point, ray.origin);
     float angle = acos(glm::dot(-ray.direction, hitInfo.normal));
-    float k = dist * angle / 3.0f;
+
+    Mesh& mesh = *hitInfo.mesh;
+    glm::uvec3 tri = hitInfo.triangle;
+    // If a sphere was hit first, we compute bilinear interpolation
+    if (tri == glm::uvec3(-1000000)) {
+        return bilinearInterpolation(image, texCoord, features);
+    }
+    glm::vec3 v0 = mesh.vertices[tri[0]].position;
+    glm::vec3 v1 = mesh.vertices[tri[1]].position;
+    glm::vec3 v2 = mesh.vertices[tri[2]].position;
+
+    glm::vec3 p0 = getPlaneCoord(ray, v0);
+    glm::vec3 p1 = getPlaneCoord(ray, v1);
+    glm::vec3 p2 = getPlaneCoord(ray, v2);
+
+    float areaV = glm::length(glm::cross(v0 - v1, v0 - v2));
+    float areaP = glm::length(glm::cross(p0 - p1, p0 - p2));
+
+    float k = (areaV / areaP - 1.0f) / 2.8f;
+
+    //std::cout << k << " " << areaV << " " << areaP << std::endl;
+
+    //float k = dist * angle / 3.0f;
     glm::vec3 w = glm::normalize(hitInfo.normal);
     glm::vec3 t = glm::normalize(w - glm::vec3 { 0.1f, 0.0f, 0.0f });
     glm::vec3 xVector = glm::normalize(glm::cross(t, w));
     glm::vec3 yVector = glm::normalize(glm::cross(w, xVector));
-    Ray rayU = Ray { point, yVector, dist / 5.0f };
-    Ray rayV = Ray { point, xVector, angle / 5.0f };
+    Ray rayU = Ray { point, yVector, areaV / 5.0f };
+    Ray rayV = Ray { point, xVector, areaP / 5.0f };
     drawRay(rayU, glm::vec3 { 1.0f, 0.5f, 0.0f });
     drawRay(rayV, glm::vec3 { 1.0f, 0.0f, 0.5f });
     float k0 = std::floor(k);
