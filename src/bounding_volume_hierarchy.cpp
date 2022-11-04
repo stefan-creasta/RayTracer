@@ -362,10 +362,10 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             pq.pop();
 
             if (ray.t < front.t) {
-                drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
+                //drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
                 continue;
             }
-            drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
+            //drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
 
             if (front.isLeaf == true) {
                 for (size_t currentChild : front.children) {
@@ -420,8 +420,8 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto v1 = mesh.vertices[tri[1]];
             const auto v2 = mesh.vertices[tri[2]];
             triangleIntersectUpdate(tri, hitInfo, ray, mesh, features);
-            if (features.enableNormalInterp) interpolateNormalDebug(v0, v1, v2, ray, hitInfo);
-            drawTriangle(v0, v1, v2);
+            //if (features.enableNormalInterp) interpolateNormalDebug(v0, v1, v2, ray, hitInfo);
+            //drawTriangle(v0, v1, v2);
         }
         return hit || hitTri;
     }
