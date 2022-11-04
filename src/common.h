@@ -60,7 +60,7 @@ struct ParallelogramLight {
 
 struct ExtraFeatures {
     bool enableEnvironmentMapping = false;
-    bool enableBvhSahBinning = true;
+    bool enableBvhSahBinning = false;
     bool enableMotionBlur = false;
     bool enableBloomEffect = false;
     bool enableBilinearTextureFiltering = false;
@@ -69,6 +69,9 @@ struct ExtraFeatures {
     bool enableGlossyReflection = false;
     bool enableTransparency = false;
     bool enableDepthOfField = false;
+    bool enableBvhDebugDrawVisited = false;
+    bool enableBvhDebugDrawUnvisited = false;
+    bool suppressBvhVisitDebug = false;
 };
 
 struct Features {
@@ -78,7 +81,7 @@ struct Features {
     bool enableSoftShadow = false;
     bool enableNormalInterp = false;
     bool enableTextureMapping = false;
-    bool enableAccelStructure = true;
+    bool enableAccelStructure = false;
 
     ExtraFeatures extra = {};
 };
