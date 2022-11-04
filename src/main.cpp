@@ -298,7 +298,7 @@ int main(int argc, char** argv)
                     std::filesystem::path outPath { pOutPath };
                     free(pOutPath); // NFD is a C API so we have to manually free the memory it allocated.
                     outPath.replace_extension("bmp"); // Make sure that the file extension is *.bmp
-
+                    config.features.extra.suppressBvhVisitDebug = true;
                     // Perform a new render and measure the time it took to generate the image.
                     using clock = std::chrono::high_resolution_clock;
                     const auto start = clock::now();
@@ -313,6 +313,7 @@ int main(int argc, char** argv)
                     std::cout << "Time to render image: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
                     // Store the new image.
                     screen.writeBitmapToFile(outPath);
+                    config.features.extra.suppressBvhVisitDebug = false;
                 }
             }
 
@@ -328,6 +329,8 @@ int main(int argc, char** argv)
                     ImGui::Checkbox("Show SAH Debug", &debugSAH);
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
                 }
+                ImGui::Checkbox("Draw BVH Visited Nodes", &config.features.extra.enableBvhDebugDrawVisited);
+                ImGui::Checkbox("Draw BVH Unvisited Nodes", &config.features.extra.enableBvhDebugDrawUnvisited);
             }
 
             ImGui::Spacing();
@@ -438,6 +441,7 @@ int main(int argc, char** argv)
             // Draw either using OpenGL (rasterization) or the ray tracing function.
             switch (viewMode) {
             case ViewMode::Rasterization: {
+                config.features.extra.suppressBvhVisitDebug = false;
                 glPushAttrib(GL_ALL_ATTRIB_BITS);
                 if (debugBVHLeaf) {
                     glEnable(GL_POLYGON_OFFSET_FILL);
@@ -496,6 +500,7 @@ int main(int argc, char** argv)
                 }
             } break;
             case ViewMode::RayTracing: {
+                config.features.extra.suppressBvhVisitDebug = true;
                 screen.clear(glm::vec3(0.0f));
                 renderRayTracingRouter(scene, camera, bvh, screen, config.features);
                 screen.setPixel(0, 0, glm::vec3(1.0f));
@@ -511,6 +516,7 @@ int main(int argc, char** argv)
     } else {
         // Command-line rendering.
         std::cout << config;
+        config.features.extra.suppressBvhVisitDebug = true;
         // NOTE(Yang): Trackball is highly coupled with the window,
         // so we need to create a dummy window here but not show it.
         // In this case, GLEW will not be initialized, OpenGL functions

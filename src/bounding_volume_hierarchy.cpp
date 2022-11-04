@@ -319,6 +319,9 @@ public:
 };
 bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const
 {
+    const bool suppressVisitDebug = features.extra.suppressBvhVisitDebug;
+    const bool drawVisited = !suppressVisitDebug && features.extra.enableBvhDebugDrawVisited;
+    const bool drawUnvisited = !suppressVisitDebug && features.extra.enableBvhDebugDrawUnvisited;
     bool hit = false;
     // Intersect with spheres.
     for (const auto& sphere : m_pScene->spheres)
@@ -384,10 +387,12 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             pq.pop();
 
             if (ray.t < front.t) {
-                drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 {1.0f, 0.0f, 0.0f});
+                if (drawUnvisited)
+                    drawAABB(front.axisAlignedBox, DrawMode::Wireframe, glm::vec3 { 1.0f, 0.0f, 0.0f });
                 continue;
             }
-            drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
+            if (drawVisited)
+                drawAABB(front.axisAlignedBox, DrawMode::Wireframe);
 
             if (front.isLeaf == true) {
                 for (size_t currentChild : front.children) {
@@ -442,8 +447,11 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto v1 = mesh.vertices[tri[1]];
             const auto v2 = mesh.vertices[tri[2]];
             triangleIntersectUpdate(tri, hitInfo, ray, mesh, features);
-            if (features.enableNormalInterp) interpolateNormalDebug(v0, v1, v2, ray, hitInfo);
+            if (drawVisited) {
+                if (features.enableNormalInterp)
+                    interpolateNormalDebug(v0, v1, v2, ray, hitInfo);
                 drawTriangle(v0, v1, v2);
+            }
         }
         return hit || hitTri;
     }
